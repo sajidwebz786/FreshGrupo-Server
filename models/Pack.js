@@ -18,18 +18,10 @@ const Pack = sequelize.define('Pack', {
   categoryId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Categories',
-      key: 'id'
-    }
   },
   packTypeId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'PackTypes',
-      key: 'id'
-    }
   },
   basePrice: {
     type: DataTypes.DECIMAL(10, 2),

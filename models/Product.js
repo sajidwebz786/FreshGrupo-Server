@@ -26,18 +26,10 @@ const Product = sequelize.define('Product', {
   categoryId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Categories',
-      key: 'id'
-    }
   },
   unitTypeId: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    references: {
-      model: 'UnitTypes',
-      key: 'id'
-    }
   },
   quantity: {
     type: DataTypes.DECIMAL(10, 2),

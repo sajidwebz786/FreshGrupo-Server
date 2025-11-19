@@ -10,18 +10,10 @@ const Payment = sequelize.define('Payment', {
   orderId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Orders',
-      key: 'id'
-    }
   },
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Users',
-      key: 'id'
-    }
   },
   amount: {
     type: DataTypes.DECIMAL(10, 2),

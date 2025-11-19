@@ -10,18 +10,10 @@ const Cart = sequelize.define('Cart', {
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Users',
-      key: 'id'
-    }
   },
   packId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Packs',
-      key: 'id'
-    }
   },
   quantity: {
     type: DataTypes.INTEGER,
@@ -44,7 +36,7 @@ const Cart = sequelize.define('Cart', {
   timestamps: true
 });
 
-// Define associations for Cart model
+// Associations
 Cart.associate = (models) => {
   Cart.belongsTo(models.User, { foreignKey: 'userId' });
   Cart.belongsTo(models.Pack, { foreignKey: 'packId' });

@@ -10,18 +10,10 @@ const Order = sequelize.define('Order', {
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Users',
-      key: 'id'
-    }
   },
   packId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Packs',
-      key: 'id'
-    }
   },
   quantity: {
     type: DataTypes.INTEGER,
