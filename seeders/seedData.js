@@ -832,7 +832,7 @@ async function seedDatabase(force = false) {
         stock: 30
       },
       {
-        name: 'Multivitamin Tablets',
+        name: 'Multi Vitamin Tabs',
         description: 'Daily multivitamin',
         price: 800.00,
         image: 'multivitamin.jpg',
@@ -842,7 +842,7 @@ async function seedDatabase(force = false) {
         stock: 50
       },
       {
-        name: 'Omega-3 Capsules',
+        name: 'Omega-3 Caps',
         description: 'Fish oil capsules',
         price: 1200.00,
         image: 'omega3.jpg',
@@ -852,7 +852,7 @@ async function seedDatabase(force = false) {
         stock: 40
       },
       {
-        name: 'Vitamin D3',
+        name: 'Vit D3',
         description: 'Vitamin D supplement',
         price: 600.00,
         image: 'vitamind.jpg',
@@ -862,7 +862,7 @@ async function seedDatabase(force = false) {
         stock: 60
       },
       {
-        name: 'Calcium Tablets',
+        name: 'Calcium Tabs',
         description: 'Bone health supplement',
         price: 500.00,
         image: 'calcium.jpg',
