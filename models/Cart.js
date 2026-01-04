@@ -13,7 +13,7 @@ const Cart = sequelize.define('Cart', {
   },
   packId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
   },
   quantity: {
     type: DataTypes.INTEGER,
@@ -31,6 +31,18 @@ const Cart = sequelize.define('Cart', {
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  isCustom: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  customPackName: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  customPackItems: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   timestamps: true

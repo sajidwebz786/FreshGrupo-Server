@@ -21,8 +21,8 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Initialize database connection and sync models
 const sequelize = require("./config/database");
@@ -58,7 +58,7 @@ let modelsLoaded = false;
     console.log('🔗 Associations applied.');
 
     // 3️⃣ Sync database AFTER models load
-    await sequelize.sync({  });
+    await sequelize.sync();
 
     console.log('📦 Database synced with models.');
 
@@ -768,7 +768,7 @@ app.get("/api/public/products", async (req, res) => {
   try {
     const products = await Product.findAll({
       where: { isAvailable: true },
-      include: [Category],
+      include: [Category, UnitType],
     });
     res.json(products);
   } catch (error) {
@@ -779,7 +779,7 @@ app.get("/api/public/products", async (req, res) => {
 app.get("/api/public/products/:id", async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.id, {
-      include: [Category],
+      include: [Category, UnitType],
     });
     if (product) {
       res.json(product);
@@ -795,7 +795,7 @@ app.get("/api/public/categories/:id/products", async (req, res) => {
   try {
     const products = await Product.findAll({
       where: { categoryId: req.params.id, isAvailable: true },
-      include: [Category],
+      include: [Category, UnitType],
     });
     res.json(products);
   } catch (error) {
@@ -829,7 +829,10 @@ app.get("/api/categories/:id", async (req, res) => {
 app.get("/api/products", async (req, res) => {
   try {
     const products = await Product.findAll({
-      include: [Category],
+      include: [
+        { model: Category, attributes: ['id', 'name'] },
+        { model: UnitType, attributes: ['id', 'name', 'abbreviation'] }
+      ],
     });
     res.json(products);
   } catch (error) {
@@ -840,7 +843,7 @@ app.get("/api/products", async (req, res) => {
 app.get("/api/products/:id", async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.id, {
-      include: [Category],
+      include: [Category, UnitType],
     });
     if (product) {
       res.json(product);
@@ -856,7 +859,7 @@ app.get("/api/categories/:id/products", async (req, res) => {
   try {
     const products = await Product.findAll({
       where: { categoryId: req.params.id },
-      include: [Category],
+      include: [Category, UnitType],
     });
     res.json(products);
   } catch (error) {
@@ -889,13 +892,24 @@ app.get("/api/cart/:userId", async (req, res) => {
             { model: PackType, attributes: ["id", "name", "duration"] },
           ],
           attributes: ["id", "name", "finalPrice"],
+          required: false, // Allow cart items without packs (custom packs)
         },
       ],
     });
 
-    console.log("Cart items found:", cartItems.length);
-    console.log("Cart items data:", JSON.stringify(cartItems, null, 2));
-    res.json(cartItems);
+    // Process cart items to include custom pack data
+    const processedCartItems = cartItems.map(item => {
+      const itemData = item.toJSON();
+      if (itemData.isCustom) {
+        // For custom packs, add parsed items
+        itemData.customPackItemsParsed = JSON.parse(itemData.customPackItems || '[]');
+      }
+      return itemData;
+    });
+
+    console.log("Cart items found:", processedCartItems.length);
+    console.log("Cart items data:", JSON.stringify(processedCartItems, null, 2));
+    res.json(processedCartItems);
   } catch (error) {
     console.error("Error fetching cart:", error);
     res.status(500).json({ error: error.message });
@@ -904,7 +918,7 @@ app.get("/api/cart/:userId", async (req, res) => {
 
 app.post("/api/cart", async (req, res) => {
   try {
-    const { userId, packId, quantity } = req.body;
+    const { userId, packId, quantity, isCustom, customPackName, customPackItems } = req.body;
 
     console.log("=== ADD TO CART REQUEST ===");
     console.log("Request body:", JSON.stringify(req.body, null, 2));
@@ -914,70 +928,137 @@ app.post("/api/cart", async (req, res) => {
       "pack:",
       packId,
       "quantity:",
-      quantity
+      quantity,
+      "isCustom:",
+      isCustom
     );
 
     // Validate required fields
-    if (!userId || !packId || !quantity) {
-      console.error("Missing required fields:", { userId, packId, quantity });
+    if (!userId || !quantity) {
+      console.error("Missing required fields:", { userId, quantity });
       return res
         .status(400)
-        .json({ error: "userId, packId, and quantity are required" });
+        .json({ error: "userId and quantity are required" });
     }
 
-    // Get pack details
-    const pack = await Pack.findByPk(packId);
-    if (!pack) {
-      console.error("Pack not found with ID:", packId);
-      return res.status(404).json({ error: "Pack not found" });
+    if (!isCustom && !packId) {
+      return res.status(400).json({ error: "packId is required for non-custom packs" });
     }
 
-    console.log("Pack found:", pack.name, "Price:", pack.finalPrice);
+    if (isCustom && (!customPackName || !customPackItems)) {
+      return res.status(400).json({ error: "customPackName and customPackItems are required for custom packs" });
+    }
 
-    // Check if item already exists in cart
-    const existingCartItem = await Cart.findOne({
-      where: { userId, packId, isActive: true },
-    });
+    let unitPrice = 0;
+    let totalPrice = 0;
 
-    console.log(
-      "Existing cart item check:",
-      existingCartItem ? "Found" : "Not found"
-    );
+    if (isCustom) {
+      // For custom packs, calculate total price from items
+      const items = JSON.parse(customPackItems);
+      unitPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      totalPrice = unitPrice * quantity;
 
-    if (existingCartItem) {
-      // Update quantity
-      const newQuantity = existingCartItem.quantity + quantity;
-      const newTotalPrice = newQuantity * pack.finalPrice;
-
-      console.log("Updating existing item:", {
-        oldQuantity: existingCartItem.quantity,
-        newQuantity,
-        newTotalPrice,
+      // Check if custom pack already exists in cart
+      const existingCartItem = await Cart.findOne({
+        where: { userId, customPackName, isActive: true, isCustom: true },
       });
 
-      await existingCartItem.update({
-        quantity: newQuantity,
-        totalPrice: newTotalPrice,
-      });
+      if (existingCartItem) {
+        // Update quantity
+        const newQuantity = existingCartItem.quantity + quantity;
+        const newTotalPrice = newQuantity * unitPrice;
 
-      console.log("Cart item updated successfully");
-      res.json(existingCartItem);
+        console.log("Updating existing custom pack:", {
+          oldQuantity: existingCartItem.quantity,
+          newQuantity,
+          newTotalPrice,
+        });
+
+        await existingCartItem.update({
+          quantity: newQuantity,
+          totalPrice: newTotalPrice,
+        });
+
+        console.log("Custom pack updated successfully");
+        return res.json(existingCartItem);
+      } else {
+        // Create new custom pack cart item
+        const newCartItem = {
+          userId,
+          quantity,
+          unitPrice,
+          totalPrice,
+          isCustom: true,
+          customPackName,
+          customPackItems,
+        };
+
+        console.log("Creating new custom pack cart item:", newCartItem);
+
+        const cartItem = await Cart.create(newCartItem);
+
+        console.log("Custom pack cart item created successfully with ID:", cartItem.id);
+        return res.status(201).json(cartItem);
+      }
     } else {
-      // Create new cart item
-      const newCartItem = {
-        userId,
-        packId,
-        quantity,
-        unitPrice: pack.finalPrice,
-        totalPrice: quantity * pack.finalPrice,
-      };
+      // Regular pack logic
+      // Get pack details
+      const pack = await Pack.findByPk(packId);
+      if (!pack) {
+        console.error("Pack not found with ID:", packId);
+        return res.status(404).json({ error: "Pack not found" });
+      }
 
-      console.log("Creating new cart item:", newCartItem);
+      console.log("Pack found:", pack.name, "Price:", pack.finalPrice);
 
-      const cartItem = await Cart.create(newCartItem);
+      unitPrice = pack.finalPrice;
+      totalPrice = quantity * pack.finalPrice;
 
-      console.log("Cart item created successfully with ID:", cartItem.id);
-      res.status(201).json(cartItem);
+      // Check if item already exists in cart
+      const existingCartItem = await Cart.findOne({
+        where: { userId, packId, isActive: true },
+      });
+
+      console.log(
+        "Existing cart item check:",
+        existingCartItem ? "Found" : "Not found"
+      );
+
+      if (existingCartItem) {
+        // Update quantity
+        const newQuantity = existingCartItem.quantity + quantity;
+        const newTotalPrice = newQuantity * pack.finalPrice;
+
+        console.log("Updating existing item:", {
+          oldQuantity: existingCartItem.quantity,
+          newQuantity,
+          newTotalPrice,
+        });
+
+        await existingCartItem.update({
+          quantity: newQuantity,
+          totalPrice: newTotalPrice,
+        });
+
+        console.log("Cart item updated successfully");
+        res.json(existingCartItem);
+      } else {
+        // Create new cart item
+        const newCartItem = {
+          userId,
+          packId,
+          quantity,
+          unitPrice: pack.finalPrice,
+          totalPrice: quantity * pack.finalPrice,
+        };
+
+        console.log("Creating new cart item:", newCartItem);
+
+        const cartItem = await Cart.create(newCartItem);
+
+        console.log("Cart item created successfully with ID:", cartItem.id);
+        res.status(201).json(cartItem);
+      }
     }
   } catch (error) {
     console.error("Error adding to cart:", error);
@@ -1382,6 +1463,7 @@ app.get("/api/packs/:id", async (req, res) => {
           model: Product,
           through: { attributes: ["quantity", "unitPrice"] },
           attributes: ["name", "price"],
+          include: [UnitType],
         },
       ],
     });
@@ -1439,7 +1521,7 @@ app.get("/api/packs/:id/products", async (req, res) => {
   try {
     const packProducts = await PackProduct.findAll({
       where: { packId: req.params.id },
-      include: [{ model: Product, include: [Category] }],
+      include: [{ model: Product, include: [Category, UnitType] }],
     });
     res.json(packProducts);
   } catch (error) {
@@ -1544,14 +1626,14 @@ app.listen(PORT, "0.0.0.0", async () => {
   if (modelsLoaded) {
     if (process.env.SEED_ON_STARTUP === "true") {
       try {
-
-        await global.seedDatabase();
-
+        console.log("🌱 Starting database seeding...");
+        await global.seedDatabase(true); // Force seed when SEED_ON_STARTUP=true
+        console.log("✅ Database seeded successfully on startup");
       } catch (error) {
         console.error("❌ Error seeding database on startup:", error);
       }
     } else {
-      console.log("ℹ Database seeding skipped.");
+      console.log("ℹ Database seeding skipped (SEED_ON_STARTUP=false).");
     }
   } else {
     console.error("❌ Models not loaded within timeout period");

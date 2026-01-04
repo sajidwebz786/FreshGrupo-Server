@@ -8,8 +8,9 @@ const Category = sequelize.define('Category', {
     autoIncrement: true
   },
   name: {
-    type: DataTypes.ENUM('Vegetables', 'Fruits', 'Groceries'),
-    allowNull: false
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
   },
   description: {
     type: DataTypes.TEXT,
