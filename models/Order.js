@@ -13,7 +13,7 @@ const Order = sequelize.define('Order', {
   },
   packId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
   },
   quantity: {
     type: DataTypes.INTEGER,
@@ -47,6 +47,18 @@ const Order = sequelize.define('Order', {
   paymentStatus: {
     type: DataTypes.ENUM('pending', 'completed', 'failed', 'refunded'),
     defaultValue: 'pending'
+  },
+  isCustom: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  customPackName: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  customPackItems: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   timestamps: true
@@ -55,7 +67,7 @@ const Order = sequelize.define('Order', {
 // Define associations for Order model
 Order.associate = (models) => {
   Order.belongsTo(models.User, { foreignKey: 'userId' });
-  Order.belongsTo(models.Pack, { foreignKey: 'packId' });
+  Order.belongsTo(models.Pack, { foreignKey: 'packId', required: false }); // Allow orders without packs (custom packs)
   Order.hasMany(models.Payment, { foreignKey: 'orderId' });
 };
 

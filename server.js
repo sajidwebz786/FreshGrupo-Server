@@ -1134,30 +1134,48 @@ app.get("/api/orders/:id", async (req, res) => {
 
 app.post("/api/orders", async (req, res) => {
   try {
-    const { userId, packId, quantity, deliveryAddress } = req.body;
+    const { userId, packId, quantity, deliveryAddress, isCustom, customPackName, customPackItems, unitPrice } = req.body;
 
-    // Get pack details
-    const pack = await Pack.findByPk(packId);
-    if (!pack) {
-      return res.status(404).json({ error: "Pack not found" });
+    let orderData = {
+      userId,
+      quantity,
+      deliveryAddress,
+      status: "pending",
+    };
+
+    if (isCustom) {
+      // For custom packs
+      orderData.isCustom = true;
+      orderData.customPackName = customPackName;
+      orderData.customPackItems = customPackItems;
+      orderData.unitPrice = unitPrice;
+      orderData.totalAmount = quantity * unitPrice;
+
+      // Clear cart for this custom pack
+      await Cart.update(
+        { isActive: false },
+        { where: { userId, customPackName, isActive: true, isCustom: true } }
+      );
+    } else {
+      // Get pack details
+      const pack = await Pack.findByPk(packId);
+      if (!pack) {
+        return res.status(404).json({ error: "Pack not found" });
+      }
+
+      orderData.packId = packId;
+      orderData.unitPrice = pack.finalPrice;
+      orderData.totalAmount = quantity * pack.finalPrice;
+
+      // Clear cart for this user and pack
+      await Cart.update(
+        { isActive: false },
+        { where: { userId, packId, isActive: true } }
+      );
     }
 
     // Create order
-    const order = await Order.create({
-      userId,
-      packId,
-      quantity,
-      unitPrice: pack.finalPrice,
-      totalAmount: quantity * pack.finalPrice,
-      deliveryAddress,
-      status: "pending",
-    });
-
-    // Clear cart for this user and pack
-    await Cart.update(
-      { isActive: false },
-      { where: { userId, packId, isActive: true } }
-    );
+    const order = await Order.create(orderData);
 
     res.status(201).json(order);
   } catch (error) {
