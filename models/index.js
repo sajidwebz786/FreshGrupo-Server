@@ -19,8 +19,16 @@ fs
     return (file.indexOf('.') !== 0) && (file !== basename) && (file.slice(-3) === '.js');
   })
   .forEach(file => {
-    const model = require(path.join(__dirname, file));
-    model.init(sequelize);
+    const modelModule = require(path.join(__dirname, file));
+    let model;
+    if (typeof modelModule === 'function') {
+      // Function-based model
+      model = modelModule(sequelize, Sequelize.DataTypes);
+    } else {
+      // Class-based model
+      modelModule.init(sequelize);
+      model = modelModule;
+    }
     db[model.name] = model;
   });
 
