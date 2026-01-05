@@ -36,33 +36,24 @@ async function seedDatabase(force = false) {
     // Initialize models if not already done
     const sequelize = await initializeModels();
 
-    if (!force) {
-      // Check if database is already seeded
-      const existingUsers = await User.count();
-      if (existingUsers > 0) {
-        console.log('Database already contains data. Skipping seeding.');
-        return { message: 'Database already seeded' };
-      }
-    } else {
-      // Force seeding: drop and recreate all tables to flush existing data
-      console.log('Force seeding: flushing existing data...');
-      // Drop all tables in the public schema
-      await sequelize.query(`
-        DO $$ DECLARE
-            r RECORD;
-        BEGIN
-            FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
-                EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-            END LOOP;
-        END $$;
-      `);
-      console.log('Existing data flushed.');
-      // Re-sync after dropping
-      await sequelize.sync();
-      console.log('Database re-synced.');
-    }
+    // Always force seeding: drop and recreate all tables to flush existing data
+    console.log('Force seeding: flushing existing data...');
+    // Drop all tables in the public schema
+    await sequelize.query(`
+      DO $$ DECLARE
+          r RECORD;
+      BEGIN
+          FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+              EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+          END LOOP;
+      END $$;
+    `);
+    console.log('Existing data flushed.');
+    // Re-sync after dropping
+    await sequelize.sync();
+    console.log('Database re-synced.');
 
-    console.log(force ? 'Force seeding database...' : 'Seeding database for the first time...');
+    console.log('Seeding database...');
 
     // Hash passwords
     const hashedPassword = await bcrypt.hash('password123', 10);
@@ -290,10 +281,10 @@ async function seedDatabase(force = false) {
     const products = await Product.bulkCreate([
       // Vegetables (10 products)
       {
-        name: 'Fresh Spinach',
+        name: 'Spinach',
         description: 'Organic baby spinach leaves',
         price: 50.00,
-        image: 'spinach.jpg',
+        image: 'spinach.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
         quantity: 1,
@@ -303,7 +294,7 @@ async function seedDatabase(force = false) {
         name: 'Tomatoes',
         description: 'Vine-ripened red tomatoes',
         price: 40.00,
-        image: 'tomatoes.jpg',
+        image: 'tomatoes.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
         quantity: 1,
@@ -313,7 +304,7 @@ async function seedDatabase(force = false) {
         name: 'Potatoes',
         description: 'Fresh farm potatoes',
         price: 30.00,
-        image: 'potatoes.jpg',
+        image: 'potatoes.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
         quantity: 1,
@@ -323,7 +314,7 @@ async function seedDatabase(force = false) {
         name: 'Carrots',
         description: 'Crisp orange carrots',
         price: 60.00,
-        image: 'carrots.jpg',
+        image: 'carrots.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
         quantity: 1,
@@ -333,7 +324,7 @@ async function seedDatabase(force = false) {
         name: 'Onions',
         description: 'Red and white onions',
         price: 25.00,
-        image: 'onions.jpg',
+        image: 'onions.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
         quantity: 1,
@@ -343,7 +334,7 @@ async function seedDatabase(force = false) {
         name: 'Bell Peppers',
         description: 'Colorful bell peppers',
         price: 90.00,
-        image: 'bell-peppers.jpg',
+        image: 'bell-peppers.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
         quantity: 1,
@@ -353,7 +344,7 @@ async function seedDatabase(force = false) {
         name: 'Broccoli',
         description: 'Fresh green broccoli',
         price: 120.00,
-        image: 'broccoli.jpg',
+        image: 'broccoli.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
         quantity: 1,
@@ -363,7 +354,7 @@ async function seedDatabase(force = false) {
         name: 'Cauliflower',
         description: 'Fresh cauliflower heads',
         price: 60.00,
-        image: 'cauliflower.jpg',
+        image: 'cauliflower.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[6].id, // PC - sold individually
         quantity: 1,
@@ -373,7 +364,7 @@ async function seedDatabase(force = false) {
         name: 'Green Beans',
         description: 'Fresh green beans',
         price: 70.00,
-        image: 'green-beans.jpg',
+        image: 'green-beans.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
         quantity: 1,
@@ -383,7 +374,7 @@ async function seedDatabase(force = false) {
         name: 'Cabbage',
         description: 'Fresh green cabbage',
         price: 45.00,
-        image: 'cabbage.jpg',
+        image: 'cabbage.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[6].id, // PC - sold individually
         quantity: 1,
@@ -392,20 +383,20 @@ async function seedDatabase(force = false) {
 
       // Fruits (10 products)
       {
-        name: 'Fresh Bananas',
+        name: 'Bananas',
         description: 'Sweet and ripe bananas',
         price: 70.00,
-        image: 'bananas.jpg',
+        image: 'bananas.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[8].id, // Pack of 6
         quantity: 1,
         stock: 200
       },
       {
-        name: 'Organic Apples',
+        name: 'Apples',
         description: 'Crisp and juicy organic apples',
         price: 120.00,
-        image: 'apples.jpg',
+        image: 'apples.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[0].id, // KG
         quantity: 1,
@@ -415,7 +406,7 @@ async function seedDatabase(force = false) {
         name: 'Oranges',
         description: 'Sweet and juicy oranges',
         price: 120.00,
-        image: 'oranges.jpg',
+        image: 'oranges.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[0].id, // KG
         quantity: 1,
@@ -425,7 +416,7 @@ async function seedDatabase(force = false) {
         name: 'Mangoes',
         description: 'Sweet seasonal mangoes',
         price: 150.00,
-        image: 'mangoes.jpg',
+        image: 'mangoes.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[0].id, // KG
         quantity: 1,
@@ -435,7 +426,7 @@ async function seedDatabase(force = false) {
         name: 'Grapes',
         description: 'Fresh seedless grapes',
         price: 150.00,
-        image: 'grapes.jpg',
+        image: 'grapes.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[0].id, // KG
         quantity: 1,
@@ -445,7 +436,7 @@ async function seedDatabase(force = false) {
         name: 'Strawberries',
         description: 'Sweet strawberries',
         price: 200.00,
-        image: 'strawberries.jpg',
+        image: 'strawberries.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[2].id, // BOX
         quantity: 1,
@@ -455,7 +446,7 @@ async function seedDatabase(force = false) {
         name: 'Pineapple',
         description: 'Fresh tropical pineapple',
         price: 80.00,
-        image: 'pineapple.jpg',
+        image: 'pineapple.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[3].id, // PC
         quantity: 1,
@@ -465,7 +456,7 @@ async function seedDatabase(force = false) {
         name: 'Watermelon',
         description: 'Refreshing watermelon',
         price: 40.00,
-        image: 'watermelon.jpg',
+        image: 'watermelon.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[3].id, // PC
         quantity: 1,
@@ -475,7 +466,7 @@ async function seedDatabase(force = false) {
         name: 'Papaya',
         description: 'Ripe papaya fruit',
         price: 60.00,
-        image: 'papaya.jpg',
+        image: 'papaya.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[0].id, // KG
         quantity: 1,
@@ -485,7 +476,7 @@ async function seedDatabase(force = false) {
         name: 'Kiwi',
         description: 'Fresh kiwi fruit',
         price: 180.00,
-        image: 'kiwi.jpg',
+        image: 'kiwi.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[0].id, // KG
         quantity: 1,
@@ -494,50 +485,50 @@ async function seedDatabase(force = false) {
 
       // Groceries (15 products)
       {
-        name: 'Rice 5kg Pack',
+        name: 'Rice 5kg',
         description: 'Premium quality rice - 5kg pack',
         price: 250.00,
-        image: 'rice-5kg.jpg',
+        image: 'rice-5kg.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[6].id, // PC - piece (pack)
         quantity: 1,
         stock: 50
       },
       {
-        name: 'Rice 10kg Pack',
+        name: 'Rice 10kg',
         description: 'Premium quality rice - 10kg pack',
         price: 450.00,
-        image: 'rice-10kg.jpg',
+        image: 'rice-10kg.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[6].id, // PC - piece (pack)
         quantity: 1,
         stock: 30
       },
       {
-        name: 'Rice 25kg Pack',
+        name: 'Rice 25kg',
         description: 'Premium quality rice - 25kg pack',
         price: 1000.00,
-        image: 'rice-25kg.jpg',
+        image: 'rice-25kg.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[6].id, // PC - piece (pack)
         quantity: 1,
         stock: 20
       },
       {
-        name: 'Wheat Flour',
+        name: 'Flour',
         description: 'Fresh wheat flour',
         price: 340.00,
-        image: 'flour.jpg',
+        image: 'flour.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[0].id, // KG - bulk flour
         quantity: 1,
         stock: 120
       },
       {
-        name: 'Cooking Oil',
+        name: 'Oil',
         description: 'Pure cooking oil',
         price: 850.00,
-        image: 'oil.jpg',
+        image: 'oil.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[11].id, // 500ml - liquid in bottle
         quantity: 1,
@@ -547,7 +538,7 @@ async function seedDatabase(force = false) {
         name: 'Sugar',
         description: 'Refined white sugar',
         price: 280.00,
-        image: 'sugar.jpg',
+        image: 'sugar.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[0].id, // KG - bulk sugar
         quantity: 1,
@@ -557,7 +548,7 @@ async function seedDatabase(force = false) {
         name: 'Salt',
         description: 'Iodized salt',
         price: 110.00,
-        image: 'salt.jpg',
+        image: 'salt.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[13].id, // Small Pack - packaged salt
         quantity: 1,
@@ -567,37 +558,37 @@ async function seedDatabase(force = false) {
         name: 'Tea',
         description: 'Premium tea leaves',
         price: 1140.00,
-        image: 'tea.jpg',
+        image: 'tea.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[2].id, // 500 Grams - packaged tea
         quantity: 1,
         stock: 60
       },
       {
-        name: 'Coffee Powder',
+        name: 'Coffee',
         description: 'Rich coffee powder',
         price: 1700.00,
-        image: 'coffee.jpg',
+        image: 'coffee.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[2].id, // 500 Grams - packaged coffee
         quantity: 1,
         stock: 45
       },
       {
-        name: 'Masala Spices',
+        name: 'Masala',
         description: 'Mixed spice blend',
         price: 120.00,
-        image: 'masala.jpg',
+        image: 'masala.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[12].id, // PKT - packaged spices
         quantity: 1,
         stock: 90
       },
       {
-        name: 'Lentils (Dal)',
+        name: 'Dal',
         description: 'Assorted lentils',
         price: 90.00,
-        image: 'lentils.jpg',
+        image: 'lentils.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[0].id, // KG - bulk lentils
         quantity: 1,
@@ -607,17 +598,17 @@ async function seedDatabase(force = false) {
         name: 'Pasta',
         description: 'Italian pasta',
         price: 85.00,
-        image: 'pasta.jpg',
+        image: 'pasta.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[12].id, // PKT - packaged pasta
         quantity: 1,
         stock: 75
       },
       {
-        name: 'Tomato Ketchup',
+        name: 'Ketchup',
         description: 'Tangy tomato sauce',
         price: 95.00,
-        image: 'ketchup.jpg',
+        image: 'ketchup.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[16].id, // BTL - bottled sauce
         quantity: 1,
@@ -627,17 +618,17 @@ async function seedDatabase(force = false) {
         name: 'Biscuits',
         description: 'Assorted biscuits',
         price: 65.00,
-        image: 'biscuits.jpg',
+        image: 'biscuits.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[13].id, // Small Pack - packaged biscuits
         quantity: 1,
         stock: 150
       },
       {
-        name: 'Corn Flakes',
+        name: 'Cornflakes',
         description: 'Breakfast cereal',
         price: 180.00,
-        image: 'cornflakes.jpg',
+        image: 'cornflakes.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[5].id, // BOX - boxed cereal
         quantity: 1,
@@ -647,7 +638,7 @@ async function seedDatabase(force = false) {
         name: 'Milk Powder',
         description: 'Full cream milk powder',
         price: 250.00,
-        image: 'milk-powder.jpg',
+        image: 'milk-powder.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[3].id, // 250 Grams - packaged powder
         quantity: 1,
@@ -657,7 +648,7 @@ async function seedDatabase(force = false) {
         name: 'Honey',
         description: 'Pure natural honey',
         price: 220.00,
-        image: 'honey.jpg',
+        image: 'honey.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[16].id, // BTL - bottled honey
         quantity: 1,
@@ -669,7 +660,7 @@ async function seedDatabase(force = false) {
         name: 'Orange Juice',
         description: 'Fresh orange juice',
         price: 120.00,
-        image: 'orange-juice.jpg',
+        image: 'orange-juice.png',
         categoryId: categories[3].id,
         unitTypeId: unitTypes[16].id, // BTL
         quantity: 1,
@@ -679,7 +670,7 @@ async function seedDatabase(force = false) {
         name: 'Apple Juice',
         description: 'Pure apple juice',
         price: 110.00,
-        image: 'apple-juice.jpg',
+        image: 'apple-juice.png',
         categoryId: categories[3].id,
         unitTypeId: unitTypes[16].id, // BTL
         quantity: 1,
@@ -689,7 +680,7 @@ async function seedDatabase(force = false) {
         name: 'Mango Juice',
         description: 'Sweet mango juice',
         price: 130.00,
-        image: 'mango-juice.jpg',
+        image: 'mango-juice.png',
         categoryId: categories[3].id,
         unitTypeId: unitTypes[16].id, // BTL
         quantity: 1,
@@ -699,7 +690,7 @@ async function seedDatabase(force = false) {
         name: 'Mixed Fruit Juice',
         description: 'Blend of seasonal fruits',
         price: 140.00,
-        image: 'mixed-juice.jpg',
+        image: 'mixed-juice.png',
         categoryId: categories[3].id,
         unitTypeId: unitTypes[16].id, // BTL
         quantity: 1,
@@ -709,7 +700,7 @@ async function seedDatabase(force = false) {
         name: 'Pineapple Juice',
         description: 'Tropical pineapple juice',
         price: 125.00,
-        image: 'pineapple-juice.jpg',
+        image: 'pineapple-juice.png',
         categoryId: categories[3].id,
         unitTypeId: unitTypes[16].id, // BTL
         quantity: 1,
@@ -770,102 +761,102 @@ async function seedDatabase(force = false) {
 
       // Raw Powder (5 products)
       {
-        name: 'Turmeric Powder',
+        name: 'Turmeric',
         description: 'Pure turmeric powder',
         price: 450.00,
-        image: 'turmeric.jpg',
+        image: 'turmeric.png',
         categoryId: categories[5].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
         stock: 100
       },
       {
-        name: 'Red Chili Powder',
+        name: 'Red Chili',
         description: 'Spicy red chili powder',
         price: 500.00,
-        image: 'chili-powder.jpg',
+        image: 'chili-powder.png',
         categoryId: categories[5].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
         stock: 90
       },
       {
-        name: 'Coriander Powder',
+        name: 'Coriander',
         description: 'Ground coriander seeds',
         price: 400.00,
-        image: 'coriander.jpg',
+        image: 'coriander.png',
         categoryId: categories[5].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
         stock: 110
       },
       {
-        name: 'Cumin Powder',
-        description: 'Roasted cumin powder',
-        price: 480.00,
-        image: 'cumin.jpg',
+        name: 'Cardamom',
+        description: 'Aromatic cardamom',
+        price: 600.00,
+        image: 'cardamom.png',
         categoryId: categories[5].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
-        stock: 95
+        stock: 85
       },
       {
-        name: 'Garam Masala',
-        description: 'Mixed spice blend',
-        price: 680.00,
-        image: 'garam-masala.jpg',
+        name: 'Cloves',
+        description: 'Whole cloves',
+        price: 550.00,
+        image: 'cloves.png',
         categoryId: categories[5].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
-        stock: 80
+        stock: 75
       },
 
       // Nutrition (5 products)
       {
-        name: 'Protein Powder',
+        name: 'Whey Protein',
         description: 'Whey protein supplement',
         price: 2500.00,
-        image: 'protein-powder.jpg',
+        image: 'whey-protein.png',
         categoryId: categories[6].id,
         unitTypeId: unitTypes[0].id, // KG
         quantity: 1,
         stock: 30
       },
       {
-        name: 'Multi Vitamin Tabs',
+        name: 'Multivitamin',
         description: 'Daily multivitamin',
         price: 800.00,
-        image: 'multivitamin.jpg',
+        image: 'multivitamin.png',
         categoryId: categories[6].id,
         unitTypeId: unitTypes[13].id, // Small Pack
         quantity: 1,
         stock: 50
       },
       {
-        name: 'Omega-3 Caps',
+        name: 'Omega 3',
         description: 'Fish oil capsules',
         price: 1200.00,
-        image: 'omega3.jpg',
+        image: 'omega3.png',
         categoryId: categories[6].id,
         unitTypeId: unitTypes[13].id, // Small Pack
         quantity: 1,
         stock: 40
       },
       {
-        name: 'Vit D3',
+        name: 'Vitamin D',
         description: 'Vitamin D supplement',
         price: 600.00,
-        image: 'vitamind.jpg',
+        image: 'vitamind.png',
         categoryId: categories[6].id,
         unitTypeId: unitTypes[13].id, // Small Pack
         quantity: 1,
         stock: 60
       },
       {
-        name: 'Calcium Tabs',
+        name: 'Calcium',
         description: 'Bone health supplement',
         price: 500.00,
-        image: 'calcium.jpg',
+        image: 'calcium.png',
         categoryId: categories[6].id,
         unitTypeId: unitTypes[13].id, // Small Pack
         quantity: 1,
@@ -877,7 +868,7 @@ async function seedDatabase(force = false) {
         name: 'Almonds',
         description: 'Premium almonds',
         price: 530.00,
-        image: 'almonds.jpg',
+        image: 'almonds.png',
         categoryId: categories[7].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
@@ -887,7 +878,7 @@ async function seedDatabase(force = false) {
         name: 'Cashews',
         description: 'Whole cashews',
         price: 460.00,
-        image: 'cashews.jpg',
+        image: 'cashews.png',
         categoryId: categories[7].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
@@ -897,7 +888,7 @@ async function seedDatabase(force = false) {
         name: 'Walnuts',
         description: 'Fresh walnuts',
         price: 590.00,
-        image: 'walnuts.jpg',
+        image: 'walnuts.png',
         categoryId: categories[7].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
@@ -907,7 +898,7 @@ async function seedDatabase(force = false) {
         name: 'Raisins',
         description: 'Golden raisins',
         price: 260.00,
-        image: 'raisins.jpg',
+        image: 'raisins.png',
         categoryId: categories[7].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
@@ -917,7 +908,7 @@ async function seedDatabase(force = false) {
         name: 'Pistachios',
         description: 'Shelled pistachios',
         price: 660.00,
-        image: 'pistachios.jpg',
+        image: 'pistachios.png',
         categoryId: categories[7].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
@@ -929,7 +920,7 @@ async function seedDatabase(force = false) {
         name: 'Sweets Mix',
         description: 'Assorted festival sweets',
         price: 750.00,
-        image: 'sweets.jpg',
+        image: 'sweets.png',
         categoryId: categories[8].id,
         unitTypeId: unitTypes[0].id, // KG
         quantity: 1,
@@ -939,7 +930,7 @@ async function seedDatabase(force = false) {
         name: 'Festival Snacks',
         description: 'Traditional festival snacks',
         price: 625.00,
-        image: 'snacks.jpg',
+        image: 'snacks.png',
         categoryId: categories[8].id,
         unitTypeId: unitTypes[0].id, // KG
         quantity: 1,
@@ -949,7 +940,7 @@ async function seedDatabase(force = false) {
         name: 'Decorative Items',
         description: 'Festival decorations',
         price: 375.00,
-        image: 'decorations.jpg',
+        image: 'decorations.png',
         categoryId: categories[8].id,
         unitTypeId: unitTypes[13].id, // Small Pack
         quantity: 1,
@@ -959,7 +950,7 @@ async function seedDatabase(force = false) {
         name: 'Incense Sticks',
         description: 'Aromatic incense',
         price: 250.00,
-        image: 'incense.jpg',
+        image: 'incense.png',
         categoryId: categories[8].id,
         unitTypeId: unitTypes[13].id, // Small Pack
         quantity: 1,
@@ -969,7 +960,7 @@ async function seedDatabase(force = false) {
         name: 'Festival Fruits',
         description: 'Seasonal festival fruits',
         price: 500.00,
-        image: 'festival-fruits.jpg',
+        image: 'festival-fruits.png',
         categoryId: categories[8].id,
         unitTypeId: unitTypes[0].id, // KG
         quantity: 1,
@@ -981,7 +972,7 @@ async function seedDatabase(force = false) {
         name: 'Rose Bouquet',
         description: 'Fresh red roses',
         price: 500.00,
-        image: 'roses.jpg',
+        image: 'roses.png',
         categoryId: categories[9].id,
         unitTypeId: unitTypes[9].id, // Bunch
         quantity: 1,
@@ -991,7 +982,7 @@ async function seedDatabase(force = false) {
         name: 'Lily Bouquet',
         description: 'White lilies',
         price: 420.00,
-        image: 'lilies.jpg',
+        image: 'lilies.png',
         categoryId: categories[9].id,
         unitTypeId: unitTypes[9].id, // Bunch
         quantity: 1,
@@ -1001,7 +992,7 @@ async function seedDatabase(force = false) {
         name: 'Tulip Mix',
         description: 'Colorful tulips',
         price: 580.00,
-        image: 'tulips.jpg',
+        image: 'tulips.png',
         categoryId: categories[9].id,
         unitTypeId: unitTypes[9].id, // Bunch
         quantity: 1,
@@ -1011,7 +1002,7 @@ async function seedDatabase(force = false) {
         name: 'Orchid Plant',
         description: 'Potted orchid',
         price: 670.00,
-        image: 'orchid.jpg',
+        image: 'orchid.png',
         categoryId: categories[9].id,
         unitTypeId: unitTypes[6].id, // PC
         quantity: 1,
@@ -1021,7 +1012,7 @@ async function seedDatabase(force = false) {
         name: 'Mixed Flowers',
         description: 'Seasonal flower mix',
         price: 330.00,
-        image: 'mixed-flowers.jpg',
+        image: 'mixed-flowers.png',
         categoryId: categories[9].id,
         unitTypeId: unitTypes[9].id, // Bunch
         quantity: 1,
@@ -1030,10 +1021,10 @@ async function seedDatabase(force = false) {
 
       // Sprouts (5 products)
       {
-        name: 'Mung Bean Sprouts',
+        name: 'Mung Sprouts',
         description: 'Fresh mung sprouts',
         price: 60.00,
-        image: 'mung-sprouts.jpg',
+        image: 'mung-sprouts.png',
         categoryId: categories[10].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
@@ -1043,7 +1034,7 @@ async function seedDatabase(force = false) {
         name: 'Chickpea Sprouts',
         description: 'Nutritious chickpea sprouts',
         price: 70.00,
-        image: 'chickpea-sprouts.jpg',
+        image: 'chickpea-sprouts.png',
         categoryId: categories[10].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
@@ -1053,7 +1044,7 @@ async function seedDatabase(force = false) {
         name: 'Alfalfa Sprouts',
         description: 'Organic alfalfa sprouts',
         price: 80.00,
-        image: 'alfalfa-sprouts.jpg',
+        image: 'alfalfa-sprouts.png',
         categoryId: categories[10].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
@@ -1063,7 +1054,7 @@ async function seedDatabase(force = false) {
         name: 'Radish Sprouts',
         description: 'Crunchy radish sprouts',
         price: 65.00,
-        image: 'radish-sprouts.jpg',
+        image: 'radish-sprouts.png',
         categoryId: categories[10].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,
@@ -1073,7 +1064,7 @@ async function seedDatabase(force = false) {
         name: 'Mixed Sprouts',
         description: 'Blend of healthy sprouts',
         price: 75.00,
-        image: 'mixed-sprouts.jpg',
+        image: 'mixed-sprouts.png',
         categoryId: categories[10].id,
         unitTypeId: unitTypes[2].id, // 500G
         quantity: 1,

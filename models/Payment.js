@@ -1,64 +1,48 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
 
-const Payment = sequelize.define('Payment', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  orderId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  amount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false
-  },
-  paymentMethod: {
-    type: DataTypes.ENUM('card', 'upi', 'net_banking', 'wallet', 'cod'),
-    allowNull: false
-  },
-  status: {
-    type: DataTypes.ENUM('pending', 'completed', 'failed', 'refunded'),
-    defaultValue: 'pending'
-  },
-  transactionId: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  paymentDate: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
-  },
-  gatewayResponse: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  razorpayOrderId: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  razorpayPaymentId: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  razorpaySignature: {
-    type: DataTypes.STRING,
-    allowNull: true
-  }
-}, {
-  timestamps: true
-});
+module.exports = (sequelize) => {
+  const Payment = sequelize.define('Payment', {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    orderId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'Orders',
+        key: 'id',
+      },
+    },
+    razorpayPaymentId: {
+      type: DataTypes.STRING(255),
+    },
+    razorpayOrderId: {
+      type: DataTypes.STRING(255),
+    },
+    amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    currency: {
+      type: DataTypes.STRING(10),
+      defaultValue: 'INR',
+    },
+    status: {
+      type: DataTypes.STRING(50),
+      defaultValue: 'pending', // pending, completed, failed
+    },
+    paymentMethod: {
+      type: DataTypes.STRING(50),
+    },
+  }, {
+    timestamps: true,
+  });
 
-// Define associations for Payment model
-Payment.associate = (models) => {
-  Payment.belongsTo(models.Order, { foreignKey: 'orderId' });
-  Payment.belongsTo(models.User, { foreignKey: 'userId' });
+  Payment.associate = (models) => {
+    Payment.belongsTo(models.Order, { foreignKey: 'orderId', as: 'order' });
+  };
+
+  return Payment;
 };
-
-module.exports = Payment;
