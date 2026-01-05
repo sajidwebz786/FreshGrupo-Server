@@ -21,13 +21,13 @@ fs
   .forEach(file => {
     const modelModule = require(path.join(__dirname, file));
     let model;
-    if (typeof modelModule === 'function') {
-      // Function-based model
-      model = modelModule(sequelize, Sequelize.DataTypes);
-    } else {
+    if (modelModule.init) {
       // Class-based model
       modelModule.init(sequelize);
       model = modelModule;
+    } else {
+      // Function-based model
+      model = modelModule(sequelize, Sequelize.DataTypes);
     }
     db[model.name] = model;
   });
