@@ -47,6 +47,9 @@ router.get('/categories/:categoryId/packs', async (req, res) => {
       where,
       attributes: ['id', 'name', 'description', 'basePrice', 'finalPrice', 'validFrom', 'validUntil'],
       include: [{
+        model: PackType,
+        attributes: ['id', 'name', 'duration', 'basePrice']
+      }, {
         model: Product,
         through: { attributes: [] },
         attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock']
