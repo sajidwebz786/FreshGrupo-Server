@@ -5,15 +5,13 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Order extends Model {
     static associate(models) {
-      Order.hasOne(models.Payment, {
-        foreignKey: 'orderId',
-        as: 'payment'
-      });
+      // Each order belongs to a user
+      Order.belongsTo(models.User, { foreignKey: 'userId' });
 
-      Order.hasMany(models.OrderDetail, {
-        foreignKey: 'orderId',
-        as: 'details'
-      });
+      // Each order has one payment
+      Order.hasOne(models.Payment, { foreignKey: 'orderId', as: 'payment' });
+
+      // Remove all references to OrderDetail
     }
   }
 
@@ -70,9 +68,9 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     {
-      sequelize,           // ✅ REQUIRED
+      sequelize,
       modelName: 'Order',
-      tableName: 'Orders', // optional but recommended
+      tableName: 'Orders',
       timestamps: true
     }
   );
