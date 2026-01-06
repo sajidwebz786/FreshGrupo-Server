@@ -1,15 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { Cart, Pack } = require('../models');
-const verifyToken = require('../middleware/auth');
 
 /**
- * GET /api/cart
+ * GET /api/cart/:userId
  * Fetch user's active cart items
  */
-router.get('/', verifyToken, async (req, res) => {
+router.get('/:userId', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.params.userId;
 
     const cartItems = await Cart.findAll({
       where: { userId, isActive: true },
@@ -30,32 +29,12 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 /**
- * GET /api/cart/count
- * Fetch count of user's active cart items
- */
-router.get('/count', verifyToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const count = await Cart.count({
-      where: { userId, isActive: true }
-    });
-
-    res.status(200).json({ count });
-  } catch (error) {
-    console.error('Error fetching cart count:', error);
-    res.status(500).json({ error: 'Failed to fetch cart count' });
-  }
-});
-
-/**
  * POST /api/cart
  * Add item to cart
  */
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { packId, quantity, isCustom, customPackName, customPackItems, unitPrice } = req.body;
+    const { userId, packId, quantity, isCustom, customPackName, customPackItems, unitPrice } = req.body;
 
     let unitPriceValue = unitPrice;
     let totalPriceValue;
@@ -93,11 +72,10 @@ router.post('/', verifyToken, async (req, res) => {
  * PUT /api/cart/:id
  * Update quantity of cart item
  */
-router.put('/:id', verifyToken, async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
-    const userId = req.user.id;
     const cartId = parseInt(req.params.id);
-    const { quantity } = req.body;
+    const { quantity, userId } = req.body;
 
     if (isNaN(cartId)) {
       return res.status(400).json({ error: 'Invalid cart item id' });
@@ -129,10 +107,10 @@ router.put('/:id', verifyToken, async (req, res) => {
  * DELETE /api/cart/:id
  * Remove item from cart
  */
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const userId = req.user.id;
     const cartId = parseInt(req.params.id);
+    const { userId } = req.body;
 
     if (isNaN(cartId)) {
       return res.status(400).json({ error: 'Invalid cart item id' });
