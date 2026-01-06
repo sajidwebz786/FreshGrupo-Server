@@ -47,77 +47,72 @@ router.post('/', async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
-    const orderData = req.body;
+    const {
+      userId,
+      quantity,
+      deliveryAddress,
+      paymentMethod,
+      totalAmount,
+      isCustom,
+      customPackName,
+      customPackItems,
+      unitPrice,
+      packId
+    } = req.body;
 
-    // Create Order
     const newOrder = await Order.create(
       {
-        userId: orderData.userId,
-        quantity: orderData.quantity,
-        deliveryAddress: orderData.deliveryAddress,
-        paymentMethod: orderData.paymentMethod,
-        totalAmount: orderData.totalAmount,
-        isCustom: orderData.isCustom || false,
-        customPackName: orderData.customPackName || null,
-        customPackItems: orderData.customPackItems || null,
-        unitPrice: orderData.unitPrice || null,
-        packId: orderData.packId || null,
-        status: 'Processing'
+        userId,
+        quantity,
+        deliveryAddress,
+        paymentMethod,
+        totalAmount,
+        isCustom: isCustom || false,
+        customPackName: customPackName || null,
+        customPackItems: customPackItems || null,
+        unitPrice: unitPrice || null,
+        packId: packId || null,
+        status: 'processing'
       },
       { transaction }
     );
 
     let razorpayOrderId = null;
 
-    if (orderData.paymentMethod === 'razorpay') {
-
+    if (paymentMethod === 'razorpay') {
       const razorpayOrder = await razorpay.orders.create({
-
-        amount: Math.round(orderData.totalAmount * 100),
-
+        amount: Math.round(totalAmount * 100),
         currency: 'INR',
-
-        receipt: `receipt_${newOrder.id}`
-
+        receipt: `order_${newOrder.id}`,
       });
-
       razorpayOrderId = razorpayOrder.id;
-
     }
 
-    // Create Payment
     await Payment.create(
       {
         orderId: newOrder.id,
-        userId: orderData.userId,
-        amount: orderData.totalAmount,
-        paymentMethod: orderData.paymentMethod,
-        status:
-          orderData.paymentMethod === 'cod'
-            ? 'completed'
-            : 'pending'
+        userId,
+        amount: totalAmount,
+        paymentMethod,
+        status: 'pending'
       },
       { transaction }
     );
 
     await transaction.commit();
 
-    const response = newOrder.toJSON();
-
-    if (razorpayOrderId) {
-
-      response.razorpayOrderId = razorpayOrderId;
-
-    }
-
-    res.status(201).json(response);
+    res.status(201).json({
+      ...newOrder.toJSON(),
+      razorpayOrderId
+    });
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error creating order:', error);
-    res.status(500).json({ error: 'Failed to create order' });
+    console.error('Order creation error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
+
 
 /**
  * PUT /api/orders/:orderId/payment
