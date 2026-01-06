@@ -64,4 +64,22 @@ router.get('/categories/:categoryId/packs', async (req, res) => {
   }
 });
 
+// GET /api/public/categories/:categoryId/products
+router.get('/categories/:categoryId/products', async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    const products = await Product.findAll({
+      where: { categoryId, isAvailable: true },
+      attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock'],
+      order: [['name', 'ASC']]
+    });
+
+    res.status(200).json(products);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
 module.exports = router;
