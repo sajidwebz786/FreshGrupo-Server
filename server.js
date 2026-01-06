@@ -1,157 +1,223 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const Razorpay = require('razorpay');
 const db = require('./models');
+
+// ==============================
+// Razorpay Initialization
+// ==============================
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_your_key_id",
+  key_secret: process.env.RAZORPAY_KEY_SECRET || "your_key_secret",
+});
+
+// ✅ FIX: make razorpay globally accessible
+global.razorpay = razorpay;
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-/* =========================
-   RAZORPAY INIT
-========================= */
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
-
-/* =========================
-   MIDDLEWARE
-========================= */
-app.use(cors({ origin: true, credentials: true }));
+// ==============================
+// Middleware
+// ==============================
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-/* =========================
-   DB INIT
-========================= */
+// ==============================
+// Database Init
+// ==============================
 let modelsLoaded = false;
 
 (async () => {
   try {
     console.log('🔌 Connecting to database...');
     await db.sequelize.authenticate();
-    console.log('✅ Database connected');
+    console.log('✅ Database connection established.');
 
     global.models = db;
-    Object.assign(global, db);
+    global.User = db.User;
+    global.Category = db.Category;
+    global.Product = db.Product;
+    global.UnitType = db.UnitType;
+    global.PackType = db.PackType;
+    global.Pack = db.Pack;
+    global.PackProduct = db.PackProduct;
+    global.Cart = db.Cart;
+    global.Order = db.Order;
+    global.Payment = db.Payment;
+
+    console.log('🔗 Associations already applied.');
 
     await db.sequelize.sync({ alter: true });
-    console.log('📦 Database synced');
+    console.log('📦 Database synced.');
 
     global.seedDatabase = require('./seeders/seedData');
     modelsLoaded = true;
+
   } catch (err) {
-    console.error('❌ DB init failed:', err);
+    console.error('❌ Database init failed:', err);
   }
 })();
 
-/* =========================
-   ROUTES
-========================= */
-app.use('/api/orders', require('./routes/orders')); // Razorpay handled here
+// ==============================
+// Routes
+// ==============================
+app.use('/api/orders', require('./routes/orders'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/public', require('./routes/public'));
 app.use('/api/cart', require('./routes/cart'));
 
-/* =========================
-   BASIC ROUTES
-========================= */
-app.get('/', (req, res) => {
-  res.json({ message: 'Fresh Grupo API running 🚀' });
+// ==============================
+// Health & Base
+// ==============================
+app.get('/', (_, res) => {
+  res.json({ message: 'Fresh Grupo API Server is running!' });
 });
 
-app.get('/health', (req, res) => {
+app.get('/health', (_, res) => {
   res.json({ status: 'OK', time: new Date().toISOString() });
 });
 
-/* =========================
-   JWT AUTH MIDDLEWARE
-========================= */
-const authenticateToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'Token required' });
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: 'Invalid token' });
-    req.user = user;
-    next();
-  });
-};
-
-/* =========================
-   CATEGORY CRUD
-========================= */
+// ==============================
+// Category Routes
+// ==============================
 app.get('/api/categories', async (_, res) => {
-  res.json(await Category.findAll());
+  try {
+    res.json(await Category.findAll());
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/categories', async (req, res) => {
-  res.status(201).json(await Category.create(req.body));
-});
-
-/* =========================
-   PRODUCT CRUD
-========================= */
+// ==============================
+// Product Routes
+// ==============================
 app.get('/api/products', async (_, res) => {
-  res.json(
-    await Product.findAll({
+  try {
+    const products = await Product.findAll({
       include: [
-        { model: Category, attributes: ['id', 'name'] },
-        { model: UnitType, attributes: ['id', 'name', 'abbreviation'] },
+        { model: Category },
+        { model: UnitType }
       ],
-    })
-  );
+    });
+    res.json(products);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-/* =========================
-   PACK ROUTES
-========================= */
+// ==============================
+// Pack Routes (IMPORTANT)
+// ==============================
 app.get('/api/packs', async (_, res) => {
-  res.json(
-    await Pack.findAll({
+  try {
+    const packs = await Pack.findAll({
       include: [
-        { model: Category, attributes: ['name'] },
-        { model: PackType, attributes: ['name', 'duration'] },
+        { model: Category },
+        { model: PackType },
         {
           model: Product,
           through: { attributes: ['quantity', 'unitPrice'] },
+          include: [UnitType],
         },
       ],
-    })
-  );
+    });
+    res.json(packs);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-/* =========================
-   PAYMENTS (ADMIN / REPORT)
-========================= */
-app.get('/api/payments', async (_, res) => {
-  res.json(
-    await Payment.findAll({
-      include: [
-        { model: User, attributes: ['name', 'email'] },
-        { model: Order, attributes: ['id'] },
-      ],
-    })
-  );
+// ==============================
+// Razorpay Routes (UNCHANGED)
+// ==============================
+app.post('/api/create-razorpay-order', async (req, res) => {
+  try {
+    const { amount, orderId } = req.body;
+
+    const razorpayOrder = await razorpay.orders.create({
+      amount: Math.round(amount * 100),
+      currency: 'INR',
+      receipt: `order_${orderId}`,
+      payment_capture: 1,
+    });
+
+    await Order.update(
+      { paymentStatus: 'processing' },
+      { where: { id: orderId } }
+    );
+
+    res.json({
+      orderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+    });
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-/* =========================
-   ERROR HANDLERS
-========================= */
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ error: 'Server error' });
+app.post('/api/verify-payment', async (req, res) => {
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      orderId,
+      amount,
+    } = req.body;
+
+    const body = razorpay_order_id + '|' + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(body)
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ message: 'Invalid signature' });
+    }
+
+    await Payment.create({
+      orderId,
+      amount,
+      paymentMethod: 'razorpay',
+      status: 'completed',
+      transactionId: razorpay_payment_id,
+    });
+
+    await Order.update(
+      { paymentStatus: 'completed', status: 'confirmed' },
+      { where: { id: orderId } }
+    );
+
+    res.json({ success: true });
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.use((req, res) => {
+// ==============================
+// Error Handlers
+// ==============================
+app.use((_, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-/* =========================
-   SERVER START
-========================= */
+// ==============================
+// Server Start
+// ==============================
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Server running on port ${PORT}`);
 
@@ -161,13 +227,7 @@ app.listen(PORT, '0.0.0.0', async () => {
   }
 
   if (modelsLoaded && process.env.SEED_ON_STARTUP === 'true') {
-    try {
-      console.log('🌱 Seeding database...');
-      await global.seedDatabase(true);
-      console.log('✅ Seed complete');
-    } catch (e) {
-      console.error('❌ Seed failed', e);
-    }
+    await global.seedDatabase(true);
   }
 });
 
