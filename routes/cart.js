@@ -15,7 +15,6 @@ router.get('/:userId', async (req, res) => {
       include: [
         {
           model: Pack,
-          as: 'pack',
           required: false
         }
       ]
