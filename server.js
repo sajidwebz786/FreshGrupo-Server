@@ -51,7 +51,7 @@ let modelsLoaded = false;
     console.log('🔗 Associations already applied in models/index.js.');
 
     // Sync database AFTER models load
-    await db.sequelize.sync();
+    await db.sequelize.sync({ alter: true });
 
     console.log('📦 Database synced with models.');
 
