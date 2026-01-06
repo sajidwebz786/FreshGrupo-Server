@@ -34,13 +34,13 @@ router.get('/pack-types', async (req, res) => {
   }
 });
 
-// GET /api/public/packs
-router.get('/packs', async (req, res) => {
+// GET /api/public/categories/:categoryId/packs
+router.get('/categories/:categoryId/packs', async (req, res) => {
   try {
-    const { categoryId, packTypeId } = req.query;
-    const where = { isActive: true };
+    const { categoryId } = req.params;
+    const { packTypeId } = req.query;
+    const where = { isActive: true, categoryId };
 
-    if (categoryId) where.categoryId = categoryId;
     if (packTypeId) where.packTypeId = packTypeId;
 
     const packs = await Pack.findAll({

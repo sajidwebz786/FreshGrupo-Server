@@ -30,6 +30,25 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 /**
+ * GET /api/cart/count
+ * Fetch count of user's active cart items
+ */
+router.get('/count', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const count = await Cart.count({
+      where: { userId, isActive: true }
+    });
+
+    res.status(200).json({ count });
+  } catch (error) {
+    console.error('Error fetching cart count:', error);
+    res.status(500).json({ error: 'Failed to fetch cart count' });
+  }
+});
+
+/**
  * POST /api/cart
  * Add item to cart
  */
