@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { Order, Payment, sequelize } = require('../models');
+const Razorpay = require('razorpay');
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
 
 /**
  * GET /api/orders/:userId
@@ -61,6 +67,24 @@ router.post('/', async (req, res) => {
       { transaction }
     );
 
+    let razorpayOrderId = null;
+
+    if (orderData.paymentMethod === 'razorpay') {
+
+      const razorpayOrder = await razorpay.orders.create({
+
+        amount: Math.round(orderData.totalAmount * 100),
+
+        currency: 'INR',
+
+        receipt: `receipt_${newOrder.id}`
+
+      });
+
+      razorpayOrderId = razorpayOrder.id;
+
+    }
+
     // Create Payment
     await Payment.create(
       {
@@ -77,7 +101,16 @@ router.post('/', async (req, res) => {
     );
 
     await transaction.commit();
-    res.status(201).json(newOrder);
+
+    const response = newOrder.toJSON();
+
+    if (razorpayOrderId) {
+
+      response.razorpayOrderId = razorpayOrderId;
+
+    }
+
+    res.status(201).json(response);
 
   } catch (error) {
     await transaction.rollback();

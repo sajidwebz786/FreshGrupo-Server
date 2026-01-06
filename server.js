@@ -14,9 +14,11 @@ app.use(express.json());
 const orderRoutes = require('./routes/orders');
 const authRoutes = require('./routes/auth');
 const publicRoutes = require('./routes/public');
+const cartRoutes = require('./routes/cart');
 app.use('/api/orders', orderRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Sync database
 db.sequelize.sync({ force: false }).then(() => {
