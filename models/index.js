@@ -10,9 +10,6 @@ const config = require(path.join(__dirname, '/../config/config.json'))[env];
 const db = {};
 let sequelize;
 
-/**
- * Initialize Sequelize
- */
 if (config.use_env_variable) {
   sequelize = new Sequelize(process.env[config.use_env_variable], config);
 } else {
@@ -24,9 +21,6 @@ if (config.use_env_variable) {
   );
 }
 
-/**
- * Load all models
- */
 fs.readdirSync(__dirname)
   .filter(file =>
     file.indexOf('.') !== 0 &&
@@ -36,10 +30,9 @@ fs.readdirSync(__dirname)
   .forEach(file => {
     const modelFactory = require(path.join(__dirname, file));
 
-    // ✅ SAFETY CHECK
     if (typeof modelFactory !== 'function') {
       throw new Error(
-        `Model file ${file} does not export a function (sequelize, DataTypes)`
+        `❌ ${file} must export a function (sequelize, DataTypes)`
       );
     }
 
@@ -47,18 +40,12 @@ fs.readdirSync(__dirname)
     db[model.name] = model;
   });
 
-/**
- * Run associations
- */
 Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {
     db[modelName].associate(db);
   }
 });
 
-/**
- * Export
- */
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
