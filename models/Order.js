@@ -64,8 +64,8 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true
       },
       status: {
-        type: DataTypes.STRING(50),
-        defaultValue: 'Processing'
+        type: DataTypes.ENUM('pending', 'processing', 'completed', 'cancelled'),
+        defaultValue: 'processing'
       }
     },
     {
