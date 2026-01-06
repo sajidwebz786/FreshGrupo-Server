@@ -73,32 +73,20 @@ router.post('/', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
   try {
-    const cartId = parseInt(req.params.id);
-    const { quantity, userId } = req.body;
+    const { quantity } = req.body;
+    const cartItem = await Cart.findByPk(req.params.id);
 
-    if (isNaN(cartId)) {
-      return res.status(400).json({ error: 'Invalid cart item id' });
+    if (cartItem) {
+      await cartItem.update({
+        quantity,
+        totalPrice: quantity * cartItem.unitPrice,
+      });
+      res.json(cartItem);
+    } else {
+      res.status(404).json({ error: "Cart item not found" });
     }
-
-    const cartItem = await Cart.findOne({
-      where: { id: cartId, userId, isActive: true }
-    });
-
-    if (!cartItem) {
-      return res.status(404).json({ error: 'Cart item not found' });
-    }
-
-    const totalPriceValue = cartItem.unitPrice * quantity;
-
-    await cartItem.update({
-      quantity,
-      totalPrice: totalPriceValue
-    });
-
-    res.status(200).json(cartItem);
   } catch (error) {
-    console.error('Error updating cart item:', error);
-    res.status(500).json({ error: 'Failed to update cart item' });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -108,27 +96,15 @@ router.put('/:id', async (req, res) => {
  */
 router.delete('/:id', async (req, res) => {
   try {
-    const cartId = parseInt(req.params.id);
-    const { userId } = req.body;
-
-    if (isNaN(cartId)) {
-      return res.status(400).json({ error: 'Invalid cart item id' });
+    const cartItem = await Cart.findByPk(req.params.id);
+    if (cartItem) {
+      await cartItem.update({ isActive: false });
+      res.json({ message: "Cart item removed successfully" });
+    } else {
+      res.status(404).json({ error: "Cart item not found" });
     }
-
-    const cartItem = await Cart.findOne({
-      where: { id: cartId, userId, isActive: true }
-    });
-
-    if (!cartItem) {
-      return res.status(404).json({ error: 'Cart item not found' });
-    }
-
-    await cartItem.destroy();
-
-    res.status(200).json({ message: 'Cart item removed successfully' });
   } catch (error) {
-    console.error('Error removing cart item:', error);
-    res.status(500).json({ error: 'Failed to remove cart item' });
+    res.status(500).json({ error: error.message });
   }
 });
 
