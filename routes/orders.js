@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Order, Payment, OrderPackContent, sequelize } = require('../models');
+const { Order, Payment, OrderPackContent, Pack, PackProduct, Product, PackType, Category, sequelize } = require('../models');
 
 /**
  * GET /api/orders/:userId
@@ -98,6 +98,25 @@ router.post('/', async (req, res) => {
       { transaction }
     );
 
+    // Create OrderPackContent for standard packs
+    if (packId && !isCustom) {
+      const packProducts = await PackProduct.findAll({
+        where: { packId },
+        include: [{ model: Product }],
+        transaction
+      });
+
+      for (const packProduct of packProducts) {
+        await OrderPackContent.create({
+          orderId: newOrder.id,
+          productId: packProduct.productId,
+          productName: packProduct.Product.name,
+          quantity: packProduct.quantity,
+          unitPrice: packProduct.unitPrice
+        }, { transaction });
+      }
+    }
+
     await transaction.commit();
 
     res.status(201).json({
@@ -170,6 +189,14 @@ router.get('/details/:orderId', async (req, res) => {
         {
           model: OrderPackContent,
           as: 'packContents',
+          required: false
+        },
+        {
+          model: Pack,
+          include: [
+            { model: PackType },
+            { model: Category }
+          ],
           required: false
         }
       ]
