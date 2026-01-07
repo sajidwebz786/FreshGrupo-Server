@@ -123,11 +123,12 @@ router.put('/user/:id', async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    const { name, address } = req.body; // Allow updating name and address, not email/phone
+    const { name, address, phone } = req.body; // Allow updating name, address, and phone, not email
 
     const updateData = {};
     if (name) updateData.name = name;
     if (address !== undefined) updateData.address = address;
+    if (phone !== undefined) updateData.phone = phone;
 
     const [updated] = await User.update(updateData, {
       where: { id: userId }

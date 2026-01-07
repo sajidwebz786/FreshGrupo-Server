@@ -55,6 +55,7 @@ let modelsLoaded = false;
     global.Cart = db.Cart;
     global.Order = db.Order;
     global.Payment = db.Payment;
+    global.Address = db.Address;
 
     console.log('🔗 Associations already applied.');
 
@@ -76,6 +77,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/public', require('./routes/public'));
 app.use('/api/cart', require('./routes/cart'));
+app.use('/api/addresses', require('./routes/addresses'));
 
 // ==============================
 // Health & Base
