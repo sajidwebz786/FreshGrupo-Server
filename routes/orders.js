@@ -1,12 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { Order, Payment, OrderPackContent, sequelize } = require('../models');
-const Razorpay = require('razorpay');
-
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
-});
 
 /**
  * GET /api/orders/:userId
@@ -85,7 +79,7 @@ router.post('/', async (req, res) => {
     let razorpayOrderId = null;
 
     if (paymentMethod === 'razorpay') {
-      const razorpayOrder = await razorpay.orders.create({
+      const razorpayOrder = await global.razorpay.orders.create({
         amount: Math.round(totalAmount * 100),
         currency: 'INR',
         receipt: `order_${newOrder.id}`,
