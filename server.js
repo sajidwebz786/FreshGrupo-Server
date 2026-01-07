@@ -138,6 +138,35 @@ app.get('/api/packs', async (_, res) => {
   }
 });
 
+app.get('/api/packs/:id', async (req, res) => {
+  try {
+    const packId = parseInt(req.params.id);
+    if (isNaN(packId)) {
+      return res.status(400).json({ error: 'Invalid pack ID' });
+    }
+
+    const pack = await Pack.findByPk(packId, {
+      include: [
+        { model: Category },
+        { model: PackType },
+        {
+          model: Product,
+          through: { attributes: ['quantity', 'unitPrice'] },
+          include: [UnitType],
+        },
+      ],
+    });
+
+    if (!pack) {
+      return res.status(404).json({ error: 'Pack not found' });
+    }
+
+    res.json(pack);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ==============================
 // Razorpay Routes (UNCHANGED)
 // ==============================
