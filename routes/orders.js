@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Order, Payment, sequelize } = require('../models');
+const { Order, Payment, OrderPackContent, sequelize } = require('../models');
 const Razorpay = require('razorpay');
 
 const razorpay = new Razorpay({
@@ -27,6 +27,11 @@ router.get('/:userId', async (req, res) => {
         {
           model: Payment,
           as: 'payment',
+          required: false
+        },
+        {
+          model: OrderPackContent,
+          as: 'packContents',
           required: false
         }
       ]

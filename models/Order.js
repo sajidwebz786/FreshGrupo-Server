@@ -11,6 +11,12 @@ module.exports = (sequelize, DataTypes) => {
       // Each order has one payment
       Order.hasOne(models.Payment, { foreignKey: 'orderId', as: 'payment' });
 
+      Order.hasMany(models.OrderPackContent, {
+        foreignKey: 'orderId',
+        as: 'packContents'
+      });
+
+
       // Remove all references to OrderDetail
     }
   }
@@ -64,9 +70,9 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true
       },
       paymentStatus: {
-  type: DataTypes.ENUM('pending', 'processing', 'completed', 'failed'),
-  defaultValue: 'pending'
-}
+        type: DataTypes.ENUM('pending', 'processing', 'completed', 'failed'),
+        defaultValue: 'pending'
+      }
 
     },
     {
