@@ -92,4 +92,27 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// Get user by ID
+router.get('/user/:id', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'name', 'email', 'phone']
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 module.exports = router;

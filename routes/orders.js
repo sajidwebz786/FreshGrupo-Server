@@ -148,4 +148,42 @@ router.put('/:orderId/payment', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/orders/details/:orderId
+ * Fetch single order details
+ */
+router.get('/details/:orderId', async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+
+    if (isNaN(orderId)) {
+      return res.status(400).json({ error: 'Invalid orderId' });
+    }
+
+    const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: Payment,
+          as: 'payment',
+          required: false
+        },
+        {
+          model: OrderPackContent,
+          as: 'packContents',
+          required: false
+        }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.status(200).json(order);
+  } catch (error) {
+    console.error('Error fetching order:', error);
+    res.status(500).json({ error: 'Failed to fetch order' });
+  }
+});
+
 module.exports = router;
