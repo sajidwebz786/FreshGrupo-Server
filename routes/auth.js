@@ -115,4 +115,39 @@ router.get('/user/:id', async (req, res) => {
   }
 });
 
+// Update user profile
+router.put('/user/:id', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    const { name } = req.body; // Only allow updating name, not email/phone
+
+    const updateData = {};
+    if (name) updateData.name = name;
+
+    const [updated] = await User.update(updateData, {
+      where: { id: userId }
+    });
+
+    if (updated === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const updatedUser = await User.findByPk(userId, {
+      attributes: ['id', 'name', 'email', 'phone']
+    });
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 module.exports = router;
