@@ -101,7 +101,7 @@ router.get('/user/:id', async (req, res) => {
     }
 
     const user = await User.findByPk(userId, {
-      attributes: ['id', 'name', 'email', 'phone']
+      attributes: ['id', 'name', 'email', 'phone', 'address']
     });
 
     if (!user) {
@@ -123,10 +123,11 @@ router.put('/user/:id', async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    const { name } = req.body; // Only allow updating name, not email/phone
+    const { name, address } = req.body; // Allow updating name and address, not email/phone
 
     const updateData = {};
     if (name) updateData.name = name;
+    if (address !== undefined) updateData.address = address;
 
     const [updated] = await User.update(updateData, {
       where: { id: userId }
@@ -137,7 +138,7 @@ router.put('/user/:id', async (req, res) => {
     }
 
     const updatedUser = await User.findByPk(userId, {
-      attributes: ['id', 'name', 'email', 'phone']
+      attributes: ['id', 'name', 'email', 'phone', 'address']
     });
 
     res.json({
