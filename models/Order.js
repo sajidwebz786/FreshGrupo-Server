@@ -8,6 +8,9 @@ module.exports = (sequelize, DataTypes) => {
       // Each order belongs to a user
       Order.belongsTo(models.User, { foreignKey: 'userId' });
 
+      // Each order belongs to a pack
+      Order.belongsTo(models.Pack, { foreignKey: 'packId' });
+
       // Each order has one payment
       Order.hasOne(models.Payment, { foreignKey: 'orderId', as: 'payment' });
 
