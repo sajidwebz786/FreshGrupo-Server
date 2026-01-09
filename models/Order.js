@@ -75,6 +75,10 @@ module.exports = (sequelize, DataTypes) => {
       paymentStatus: {
         type: DataTypes.ENUM('pending', 'processing', 'completed', 'failed'),
         defaultValue: 'pending'
+      },
+      timeSlot: {
+        type: DataTypes.STRING(50),
+        allowNull: true
       }
 
     },
