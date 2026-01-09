@@ -57,7 +57,8 @@ router.post('/', async (req, res) => {
       customPackItems,
       unitPrice,
       packId,
-      timeSlot
+      timeSlot,
+      deliveryDate
     } = req.body;
 
     const newOrder = await Order.create(
@@ -73,6 +74,7 @@ router.post('/', async (req, res) => {
         unitPrice: unitPrice || null,
         packId: packId || null,
         timeSlot: timeSlot || null,
+        deliveryDate: deliveryDate || null,
         status: 'processing'
       },
       { transaction }

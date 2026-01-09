@@ -79,6 +79,10 @@ module.exports = (sequelize, DataTypes) => {
       timeSlot: {
         type: DataTypes.STRING(50),
         allowNull: true
+      },
+      deliveryDate: {
+        type: DataTypes.DATE,
+        allowNull: true
       }
 
     },
