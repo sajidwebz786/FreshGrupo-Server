@@ -34,10 +34,8 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ==============================
-// Database Init
+// Database Init and Server Start
 // ==============================
-let modelsLoaded = false;
-
 (async () => {
   try {
     console.log('🔌 Connecting to database...');
@@ -63,203 +61,198 @@ let modelsLoaded = false;
     console.log('📦 Database synced.');
 
     global.seedDatabase = require('./seeders/seedData');
-    modelsLoaded = true;
+
+    // ==============================
+    // Routes
+    // ==============================
+    app.use('/api/orders', require('./routes/orders'));
+    app.use('/api/auth', require('./routes/auth'));
+    app.use('/api/public', require('./routes/public'));
+    app.use('/api/cart', require('./routes/cart'));
+    app.use('/api/addresses', require('./routes/addresses'));
+
+    // ==============================
+    // Health & Base
+    // ==============================
+    app.get('/', (_, res) => {
+      res.json({ message: 'Fresh Grupo API Server is running!' });
+    });
+
+    app.get('/health', (_, res) => {
+      res.json({ status: 'OK', time: new Date().toISOString() });
+    });
+
+    // ==============================
+    // Category Routes
+    // ==============================
+    app.get('/api/categories', async (_, res) => {
+      try {
+        res.json(await Category.findAll());
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // ==============================
+    // Product Routes
+    // ==============================
+    app.get('/api/products', async (_, res) => {
+      try {
+        const products = await Product.findAll({
+          include: [
+            { model: Category },
+            { model: UnitType }
+          ],
+        });
+        res.json(products);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // ==============================
+    // Pack Routes (IMPORTANT)
+    // ==============================
+    app.get('/api/packs', async (_, res) => {
+      try {
+        const packs = await Pack.findAll({
+          include: [
+            { model: Category },
+            { model: PackType },
+            {
+              model: Product,
+              through: { attributes: ['quantity', 'unitPrice'] },
+              include: [UnitType],
+            },
+          ],
+        });
+        res.json(packs);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.get('/api/packs/:id', async (req, res) => {
+      try {
+        const packId = parseInt(req.params.id);
+        if (isNaN(packId)) {
+          return res.status(400).json({ error: 'Invalid pack ID' });
+        }
+
+        const pack = await Pack.findByPk(packId, {
+          include: [
+            { model: Category },
+            { model: PackType },
+            {
+              model: Product,
+              through: { attributes: ['quantity', 'unitPrice'] },
+              include: [UnitType],
+            },
+          ],
+        });
+
+        if (!pack) {
+          return res.status(404).json({ error: 'Pack not found' });
+        }
+
+        res.json(pack);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // ==============================
+    // Razorpay Routes (UNCHANGED)
+    // ==============================
+    app.post('/api/create-razorpay-order', async (req, res) => {
+      try {
+        const { amount, orderId } = req.body;
+
+        const razorpayOrder = await razorpay.orders.create({
+          amount: Math.round(amount * 100),
+          currency: 'INR',
+          receipt: `order_${orderId}`,
+          payment_capture: 1,
+        });
+
+        await Order.update(
+          { paymentStatus: 'processing' },
+          { where: { id: orderId } }
+        );
+
+        res.json({
+          orderId: razorpayOrder.id,
+          amount: razorpayOrder.amount,
+          currency: razorpayOrder.currency,
+        });
+
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.post('/api/verify-payment', async (req, res) => {
+      try {
+        const {
+          razorpay_order_id,
+          razorpay_payment_id,
+          razorpay_signature,
+          orderId,
+          amount,
+        } = req.body;
+
+        const body = razorpay_order_id + '|' + razorpay_payment_id;
+        const expectedSignature = crypto
+          .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+          .update(body)
+          .digest('hex');
+
+        if (expectedSignature !== razorpay_signature) {
+          return res.status(400).json({ message: 'Invalid signature' });
+        }
+
+        await Payment.create({
+          orderId,
+          amount,
+          paymentMethod: 'razorpay',
+          status: 'completed',
+          transactionId: razorpay_payment_id,
+        });
+
+        await Order.update(
+          { paymentStatus: 'completed', status: 'confirmed' },
+          { where: { id: orderId } }
+        );
+
+        res.json({ success: true });
+
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // ==============================
+    // Error Handlers
+    // ==============================
+    app.use((_, res) => {
+      res.status(404).json({ error: 'Route not found' });
+    });
+
+    // ==============================
+    // Server Start
+    // ==============================
+    app.listen(PORT, '0.0.0.0', async () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+
+      if (process.env.SEED_ON_STARTUP === 'true') {
+        await global.seedDatabase(true);
+      }
+    });
 
   } catch (err) {
     console.error('❌ Database init failed:', err);
+    process.exit(1);
   }
 })();
-
-// ==============================
-// Routes
-// ==============================
-app.use('/api/orders', require('./routes/orders'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/public', require('./routes/public'));
-app.use('/api/cart', require('./routes/cart'));
-app.use('/api/addresses', require('./routes/addresses'));
-
-// ==============================
-// Health & Base
-// ==============================
-app.get('/', (_, res) => {
-  res.json({ message: 'Fresh Grupo API Server is running!' });
-});
-
-app.get('/health', (_, res) => {
-  res.json({ status: 'OK', time: new Date().toISOString() });
-});
-
-// ==============================
-// Category Routes
-// ==============================
-app.get('/api/categories', async (_, res) => {
-  try {
-    res.json(await Category.findAll());
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ==============================
-// Product Routes
-// ==============================
-app.get('/api/products', async (_, res) => {
-  try {
-    const products = await Product.findAll({
-      include: [
-        { model: Category },
-        { model: UnitType }
-      ],
-    });
-    res.json(products);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ==============================
-// Pack Routes (IMPORTANT)
-// ==============================
-app.get('/api/packs', async (_, res) => {
-  try {
-    const packs = await Pack.findAll({
-      include: [
-        { model: Category },
-        { model: PackType },
-        {
-          model: Product,
-          through: { attributes: ['quantity', 'unitPrice'] },
-          include: [UnitType],
-        },
-      ],
-    });
-    res.json(packs);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get('/api/packs/:id', async (req, res) => {
-  try {
-    const packId = parseInt(req.params.id);
-    if (isNaN(packId)) {
-      return res.status(400).json({ error: 'Invalid pack ID' });
-    }
-
-    const pack = await Pack.findByPk(packId, {
-      include: [
-        { model: Category },
-        { model: PackType },
-        {
-          model: Product,
-          through: { attributes: ['quantity', 'unitPrice'] },
-          include: [UnitType],
-        },
-      ],
-    });
-
-    if (!pack) {
-      return res.status(404).json({ error: 'Pack not found' });
-    }
-
-    res.json(pack);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ==============================
-// Razorpay Routes (UNCHANGED)
-// ==============================
-app.post('/api/create-razorpay-order', async (req, res) => {
-  try {
-    const { amount, orderId } = req.body;
-
-    const razorpayOrder = await razorpay.orders.create({
-      amount: Math.round(amount * 100),
-      currency: 'INR',
-      receipt: `order_${orderId}`,
-      payment_capture: 1,
-    });
-
-    await Order.update(
-      { paymentStatus: 'processing' },
-      { where: { id: orderId } }
-    );
-
-    res.json({
-      orderId: razorpayOrder.id,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
-    });
-
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.post('/api/verify-payment', async (req, res) => {
-  try {
-    const {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-      orderId,
-      amount,
-    } = req.body;
-
-    const body = razorpay_order_id + '|' + razorpay_payment_id;
-    const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(body)
-      .digest('hex');
-
-    if (expectedSignature !== razorpay_signature) {
-      return res.status(400).json({ message: 'Invalid signature' });
-    }
-
-    await Payment.create({
-      orderId,
-      amount,
-      paymentMethod: 'razorpay',
-      status: 'completed',
-      transactionId: razorpay_payment_id,
-    });
-
-    await Order.update(
-      { paymentStatus: 'completed', status: 'confirmed' },
-      { where: { id: orderId } }
-    );
-
-    res.json({ success: true });
-
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ==============================
-// Error Handlers
-// ==============================
-app.use((_, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
-
-// ==============================
-// Server Start
-// ==============================
-app.listen(PORT, '0.0.0.0', async () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-
-  const start = Date.now();
-  while (!modelsLoaded && Date.now() - start < 10000) {
-    await new Promise(r => setTimeout(r, 100));
-  }
-
-  if (modelsLoaded && process.env.SEED_ON_STARTUP === 'true') {
-    await global.seedDatabase(true);
-  }
-});
 
 module.exports = app;
