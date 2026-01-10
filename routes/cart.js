@@ -36,10 +36,9 @@ router.get('/:userId', verifyToken, async (req, res) => {
  * POST /api/cart
  * Add item to cart
  */
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const { packId, quantity, isCustom, customPackName, customPackItems, unitPrice } = req.body;
-    const userId = req.user.id;
+    const { userId, packId, quantity, isCustom, customPackName, customPackItems, unitPrice } = req.body;
 
     let unitPriceValue = unitPrice;
     let totalPriceValue;
