@@ -283,7 +283,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Spinach',
         description: 'Organic baby spinach leaves',
-        price: 50.00,
+        price: 150.00,
         image: 'spinach.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
@@ -293,7 +293,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Tomatoes',
         description: 'Vine-ripened red tomatoes',
-        price: 40.00,
+        price: 50.00,
         image: 'tomatoes.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
@@ -303,7 +303,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Potatoes',
         description: 'Fresh farm potatoes',
-        price: 30.00,
+        price: 70.00,
         image: 'potatoes.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
@@ -323,7 +323,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Onions',
         description: 'Red and white onions',
-        price: 25.00,
+        price: 60.00,
         image: 'onions.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
@@ -385,17 +385,17 @@ async function seedDatabase(force = false) {
       {
         name: 'Bananas',
         description: 'Sweet and ripe bananas',
-        price: 70.00,
+        price: 55.00,
         image: 'bananas.png',
         categoryId: categories[0].id, // Fruits Pack
-        unitTypeId: unitTypes[8].id, // Pack of 6
+        unitTypeId: unitTypes[0].id, // KG
         quantity: 1,
         stock: 200
       },
       {
         name: 'Apples',
         description: 'Crisp and juicy organic apples',
-        price: 120.00,
+        price: 200.00,
         image: 'apples.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[0].id, // KG
@@ -405,7 +405,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Oranges',
         description: 'Sweet and juicy oranges',
-        price: 120.00,
+        price: 70.00,
         image: 'oranges.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[0].id, // KG
@@ -420,12 +420,13 @@ async function seedDatabase(force = false) {
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[0].id, // KG
         quantity: 1,
+        isAvailable: false,
         stock: 80
       },
       {
         name: 'Grapes',
         description: 'Fresh seedless grapes',
-        price: 150.00,
+        price: 160.00,
         image: 'grapes.png',
         categoryId: categories[0].id, // Fruits Pack
         unitTypeId: unitTypes[0].id, // KG
@@ -487,7 +488,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Rice 5kg',
         description: 'Premium quality rice - 5kg pack',
-        price: 250.00,
+        price: 300.00,
         image: 'rice-5kg.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[6].id, // PC - piece (pack)
@@ -497,7 +498,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Rice 10kg',
         description: 'Premium quality rice - 10kg pack',
-        price: 450.00,
+        price: 600.00,
         image: 'rice-10kg.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[6].id, // PC - piece (pack)
@@ -507,7 +508,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Rice 25kg',
         description: 'Premium quality rice - 25kg pack',
-        price: 1000.00,
+        price: 1500.00,
         image: 'rice-25kg.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[6].id, // PC - piece (pack)
@@ -537,7 +538,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Sugar',
         description: 'Refined white sugar',
-        price: 280.00,
+        price: 50.00,
         image: 'sugar.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[0].id, // KG - bulk sugar
@@ -547,17 +548,17 @@ async function seedDatabase(force = false) {
       {
         name: 'Salt',
         description: 'Iodized salt',
-        price: 110.00,
+        price: 30.00,
         image: 'salt.png',
         categoryId: categories[2].id,
-        unitTypeId: unitTypes[13].id, // Small Pack - packaged salt
+        unitTypeId: unitTypes[0].id, // KG - bulk salt
         quantity: 1,
         stock: 200
       },
       {
         name: 'Tea',
         description: 'Premium tea leaves',
-        price: 1140.00,
+        price: 325.00,
         image: 'tea.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[2].id, // 500 Grams - packaged tea
@@ -567,7 +568,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Coffee',
         description: 'Rich coffee powder',
-        price: 1700.00,
+        price: 5750.00,
         image: 'coffee.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[2].id, // 500 Grams - packaged coffee
@@ -587,7 +588,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Dal',
         description: 'Assorted lentils',
-        price: 90.00,
+        price: 180.00,
         image: 'lentils.png',
         categoryId: categories[2].id,
         unitTypeId: unitTypes[0].id, // KG - bulk lentils
@@ -1534,71 +1535,71 @@ async function seedDatabase(force = false) {
     // Add products to packs - assign products to all packs
     await PackProduct.bulkCreate([
       // Vegetables packs
-      { packId: vegWeeklyPack.id, productId: products[0].id, quantity: 2, unitPrice: 400.00 }, // Spinach
-      { packId: vegWeeklyPack.id, productId: products[1].id, quantity: 3, unitPrice: 300.00 }, // Tomatoes
-      { packId: vegWeeklyPack.id, productId: products[2].id, quantity: 2, unitPrice: 200.00 }, // Potatoes
+      { packId: vegWeeklyPack.id, productId: products[0].id, quantity: 2, unitPrice: 150.00 }, // Spinach
+      { packId: vegWeeklyPack.id, productId: products[1].id, quantity: 3, unitPrice: 50.00 }, // Tomatoes
+      { packId: vegWeeklyPack.id, productId: products[2].id, quantity: 2, unitPrice: 70.00 }, // Potatoes
       { packId: vegWeeklyPack.id, productId: products[3].id, quantity: 2, unitPrice: 250.00 }, // Carrots
-      { packId: vegWeeklyPack.id, productId: products[4].id, quantity: 2, unitPrice: 175.00 }, // Onions
+      { packId: vegWeeklyPack.id, productId: products[4].id, quantity: 2, unitPrice: 60.00 }, // Onions
 
-      { packId: vegBiWeeklyPack.id, productId: products[0].id, quantity: 4, unitPrice: 400.00 }, // Spinach
-      { packId: vegBiWeeklyPack.id, productId: products[1].id, quantity: 6, unitPrice: 300.00 }, // Tomatoes
-      { packId: vegBiWeeklyPack.id, productId: products[2].id, quantity: 4, unitPrice: 200.00 }, // Potatoes
+      { packId: vegBiWeeklyPack.id, productId: products[0].id, quantity: 4, unitPrice: 150.00 }, // Spinach
+      { packId: vegBiWeeklyPack.id, productId: products[1].id, quantity: 6, unitPrice: 50.00 }, // Tomatoes
+      { packId: vegBiWeeklyPack.id, productId: products[2].id, quantity: 4, unitPrice: 70.00 }, // Potatoes
       { packId: vegBiWeeklyPack.id, productId: products[3].id, quantity: 4, unitPrice: 250.00 }, // Carrots
-      { packId: vegBiWeeklyPack.id, productId: products[4].id, quantity: 4, unitPrice: 175.00 }, // Onions
+      { packId: vegBiWeeklyPack.id, productId: products[4].id, quantity: 4, unitPrice: 60.00 }, // Onions
 
-      { packId: vegMonthlyPack.id, productId: products[0].id, quantity: 8, unitPrice: 400.00 }, // Spinach
-      { packId: vegMonthlyPack.id, productId: products[1].id, quantity: 12, unitPrice: 300.00 }, // Tomatoes
-      { packId: vegMonthlyPack.id, productId: products[2].id, quantity: 8, unitPrice: 200.00 }, // Potatoes
+      { packId: vegMonthlyPack.id, productId: products[0].id, quantity: 8, unitPrice: 150.00 }, // Spinach
+      { packId: vegMonthlyPack.id, productId: products[1].id, quantity: 12, unitPrice: 50.00 }, // Tomatoes
+      { packId: vegMonthlyPack.id, productId: products[2].id, quantity: 8, unitPrice: 70.00 }, // Potatoes
       { packId: vegMonthlyPack.id, productId: products[3].id, quantity: 8, unitPrice: 250.00 }, // Carrots
-      { packId: vegMonthlyPack.id, productId: products[4].id, quantity: 8, unitPrice: 175.00 }, // Onions
+      { packId: vegMonthlyPack.id, productId: products[4].id, quantity: 8, unitPrice: 60.00 }, // Onions
 
       // Fruits packs
-      { packId: fruitsPack.id, productId: products[10].id, quantity: 6, unitPrice: 75.00 }, // Bananas
-      { packId: fruitsPack.id, productId: products[11].id, quantity: 4, unitPrice: 180.00 }, // Apples
-      { packId: fruitsPack.id, productId: products[12].id, quantity: 4, unitPrice: 120.00 }, // Oranges
-      { packId: fruitsPack.id, productId: products[13].id, quantity: 2, unitPrice: 225.00 }, // Mangoes
-      { packId: fruitsPack.id, productId: products[14].id, quantity: 3, unitPrice: 150.00 }, // Grapes
+      { packId: fruitsPack.id, productId: products[10].id, quantity: 6, unitPrice: 55.00 }, // Bananas
+      { packId: fruitsPack.id, productId: products[11].id, quantity: 4, unitPrice: 200.00 }, // Apples
+      { packId: fruitsPack.id, productId: products[12].id, quantity: 4, unitPrice: 70.00 }, // Oranges
+      { packId: fruitsPack.id, productId: products[13].id, quantity: 2, unitPrice: 150.00 }, // Mangoes
+      { packId: fruitsPack.id, productId: products[14].id, quantity: 3, unitPrice: 160.00 }, // Grapes
 
-      { packId: fruitBiWeeklyPack.id, productId: products[10].id, quantity: 12, unitPrice: 75.00 }, // Bananas
-      { packId: fruitBiWeeklyPack.id, productId: products[11].id, quantity: 8, unitPrice: 180.00 }, // Apples
-      { packId: fruitBiWeeklyPack.id, productId: products[12].id, quantity: 8, unitPrice: 120.00 }, // Oranges
-      { packId: fruitBiWeeklyPack.id, productId: products[13].id, quantity: 4, unitPrice: 225.00 }, // Mangoes
-      { packId: fruitBiWeeklyPack.id, productId: products[14].id, quantity: 6, unitPrice: 150.00 }, // Grapes
+      { packId: fruitBiWeeklyPack.id, productId: products[10].id, quantity: 12, unitPrice: 55.00 }, // Bananas
+      { packId: fruitBiWeeklyPack.id, productId: products[11].id, quantity: 8, unitPrice: 200.00 }, // Apples
+      { packId: fruitBiWeeklyPack.id, productId: products[12].id, quantity: 8, unitPrice: 70.00 }, // Oranges
+      { packId: fruitBiWeeklyPack.id, productId: products[13].id, quantity: 4, unitPrice: 150.00 }, // Mangoes
+      { packId: fruitBiWeeklyPack.id, productId: products[14].id, quantity: 6, unitPrice: 160.00 }, // Grapes
 
-      { packId: fruitMonthlyPack.id, productId: products[10].id, quantity: 24, unitPrice: 75.00 }, // Bananas
-      { packId: fruitMonthlyPack.id, productId: products[11].id, quantity: 16, unitPrice: 180.00 }, // Apples
-      { packId: fruitMonthlyPack.id, productId: products[12].id, quantity: 16, unitPrice: 120.00 }, // Oranges
-      { packId: fruitMonthlyPack.id, productId: products[13].id, quantity: 8, unitPrice: 225.00 }, // Mangoes
-      { packId: fruitMonthlyPack.id, productId: products[14].id, quantity: 12, unitPrice: 150.00 }, // Grapes
+      { packId: fruitMonthlyPack.id, productId: products[10].id, quantity: 24, unitPrice: 55.00 }, // Bananas
+      { packId: fruitMonthlyPack.id, productId: products[11].id, quantity: 16, unitPrice: 200.00 }, // Apples
+      { packId: fruitMonthlyPack.id, productId: products[12].id, quantity: 16, unitPrice: 70.00 }, // Oranges
+      { packId: fruitMonthlyPack.id, productId: products[13].id, quantity: 8, unitPrice: 150.00 }, // Mangoes
+      { packId: fruitMonthlyPack.id, productId: products[14].id, quantity: 12, unitPrice: 160.00 }, // Grapes
 
       // Grocery packs
-      { packId: groceryPack.id, productId: products[20].id, quantity: 2, unitPrice: 80.00 }, // Rice
-      { packId: groceryPack.id, productId: products[21].id, quantity: 1, unitPrice: 60.00 }, // Flour
-      { packId: groceryPack.id, productId: products[22].id, quantity: 1, unitPrice: 150.00 }, // Oil
+      { packId: groceryPack.id, productId: products[20].id, quantity: 2, unitPrice: 300.00 }, // Rice
+      { packId: groceryPack.id, productId: products[21].id, quantity: 1, unitPrice: 340.00 }, // Flour
+      { packId: groceryPack.id, productId: products[22].id, quantity: 1, unitPrice: 850.00 }, // Oil
       { packId: groceryPack.id, productId: products[23].id, quantity: 1, unitPrice: 50.00 }, // Sugar
-      { packId: groceryPack.id, productId: products[24].id, quantity: 1, unitPrice: 20.00 }, // Salt
+      { packId: groceryPack.id, productId: products[24].id, quantity: 1, unitPrice: 30.00 }, // Salt
 
-      { packId: groceryWeeklyPack.id, productId: products[20].id, quantity: 2, unitPrice: 80.00 }, // Rice
-      { packId: groceryWeeklyPack.id, productId: products[21].id, quantity: 1, unitPrice: 60.00 }, // Flour
-      { packId: groceryWeeklyPack.id, productId: products[22].id, quantity: 1, unitPrice: 150.00 }, // Oil
+      { packId: groceryWeeklyPack.id, productId: products[20].id, quantity: 2, unitPrice: 300.00 }, // Rice
+      { packId: groceryWeeklyPack.id, productId: products[21].id, quantity: 1, unitPrice: 340.00 }, // Flour
+      { packId: groceryWeeklyPack.id, productId: products[22].id, quantity: 1, unitPrice: 850.00 }, // Oil
       { packId: groceryWeeklyPack.id, productId: products[23].id, quantity: 1, unitPrice: 50.00 }, // Sugar
-      { packId: groceryWeeklyPack.id, productId: products[24].id, quantity: 1, unitPrice: 20.00 }, // Salt
+      { packId: groceryWeeklyPack.id, productId: products[24].id, quantity: 1, unitPrice: 30.00 }, // Salt
 
-      { packId: groceryBiWeeklyPack.id, productId: products[20].id, quantity: 6, unitPrice: 80.00 }, // Rice
-      { packId: groceryBiWeeklyPack.id, productId: products[21].id, quantity: 3, unitPrice: 60.00 }, // Flour
-      { packId: groceryBiWeeklyPack.id, productId: products[22].id, quantity: 3, unitPrice: 150.00 }, // Oil
+      { packId: groceryBiWeeklyPack.id, productId: products[20].id, quantity: 6, unitPrice: 300.00 }, // Rice
+      { packId: groceryBiWeeklyPack.id, productId: products[21].id, quantity: 3, unitPrice: 340.00 }, // Flour
+      { packId: groceryBiWeeklyPack.id, productId: products[22].id, quantity: 3, unitPrice: 850.00 }, // Oil
       { packId: groceryBiWeeklyPack.id, productId: products[23].id, quantity: 3, unitPrice: 50.00 }, // Sugar
-      { packId: groceryBiWeeklyPack.id, productId: products[24].id, quantity: 3, unitPrice: 20.00 }, // Salt
-      { packId: groceryBiWeeklyPack.id, productId: products[25].id, quantity: 2, unitPrice: 200.00 }, // Tea
-      { packId: groceryBiWeeklyPack.id, productId: products[26].id, quantity: 1, unitPrice: 300.00 }, // Coffee
+      { packId: groceryBiWeeklyPack.id, productId: products[24].id, quantity: 3, unitPrice: 30.00 }, // Salt
+      { packId: groceryBiWeeklyPack.id, productId: products[25].id, quantity: 2, unitPrice: 325.00 }, // Tea
+      { packId: groceryBiWeeklyPack.id, productId: products[26].id, quantity: 1, unitPrice: 5750.00 }, // Coffee
 
-      { packId: groceryMonthlyPack.id, productId: products[20].id, quantity: 10, unitPrice: 80.00 }, // Rice
-      { packId: groceryMonthlyPack.id, productId: products[21].id, quantity: 5, unitPrice: 60.00 }, // Flour
-      { packId: groceryMonthlyPack.id, productId: products[22].id, quantity: 5, unitPrice: 150.00 }, // Oil
+      { packId: groceryMonthlyPack.id, productId: products[20].id, quantity: 10, unitPrice: 300.00 }, // Rice
+      { packId: groceryMonthlyPack.id, productId: products[21].id, quantity: 5, unitPrice: 340.00 }, // Flour
+      { packId: groceryMonthlyPack.id, productId: products[22].id, quantity: 5, unitPrice: 850.00 }, // Oil
       { packId: groceryMonthlyPack.id, productId: products[23].id, quantity: 5, unitPrice: 50.00 }, // Sugar
-      { packId: groceryMonthlyPack.id, productId: products[24].id, quantity: 5, unitPrice: 20.00 }, // Salt
-      { packId: groceryMonthlyPack.id, productId: products[25].id, quantity: 4, unitPrice: 200.00 }, // Tea
-      { packId: groceryMonthlyPack.id, productId: products[26].id, quantity: 2, unitPrice: 300.00 }, // Coffee
+      { packId: groceryMonthlyPack.id, productId: products[24].id, quantity: 5, unitPrice: 30.00 }, // Salt
+      { packId: groceryMonthlyPack.id, productId: products[25].id, quantity: 4, unitPrice: 325.00 }, // Tea
+      { packId: groceryMonthlyPack.id, productId: products[26].id, quantity: 2, unitPrice: 5750.00 }, // Coffee
       { packId: groceryMonthlyPack.id, productId: products[27].id, quantity: 3, unitPrice: 65.00 }, // Biscuits
       { packId: groceryMonthlyPack.id, productId: products[28].id, quantity: 2, unitPrice: 180.00 }, // Corn Flakes
       { packId: groceryMonthlyPack.id, productId: products[29].id, quantity: 2, unitPrice: 250.00 }, // Milk Powder
