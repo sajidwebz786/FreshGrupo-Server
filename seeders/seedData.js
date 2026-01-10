@@ -36,24 +36,37 @@ async function seedDatabase(force = false) {
     // Initialize models if not already done
     const sequelize = await initializeModels();
 
-    // Always force seeding: drop and recreate all tables to flush existing data
-    console.log('Force seeding: flushing existing data...');
-    // Drop all tables in the public schema
-    await sequelize.query(`
-      DO $$ DECLARE
-          r RECORD;
-      BEGIN
-          FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
-              EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-          END LOOP;
-      END $$;
-    `);
-    console.log('Existing data flushed.');
-    // Re-sync after dropping
-    await sequelize.sync();
-    console.log('Database re-synced.');
+    if (force) {
+      // Force seeding: drop and recreate all tables to flush existing data
+      console.log('Force seeding: flushing existing data...');
+      // Drop all tables in the public schema
+      await sequelize.query(`
+        DO $$ DECLARE
+             r RECORD;
+         BEGIN
+             FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+                 EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+             END LOOP;
+         END $$;
+      `);
+      console.log('Existing data flushed.');
+      // Re-sync after dropping
+      await sequelize.sync();
+      console.log('Database re-synced.');
+    } else {
+      // Just sync without dropping
+      await sequelize.sync();
+      console.log('Database synced.');
+    }
 
     console.log('Seeding database...');
+
+    // Check if data already exists
+    const existingUsers = await User.count();
+    if (existingUsers > 0) {
+      console.log('Data already exists, skipping seeding.');
+      return { users: [], categories: [], unitTypes: [], products: [], packTypes: [], packs: [] };
+    }
 
     // Hash passwords
     const hashedPassword = await bcrypt.hash('password123', 10);
@@ -121,11 +134,6 @@ async function seedDatabase(force = false) {
         name: 'Piece',
         abbreviation: 'PC',
         description: 'Individual pieces'
-      },
-      {
-        name: 'Dozen',
-        abbreviation: 'DZ',
-        description: 'Dozen (12 pieces)'
       },
       {
         name: 'Pack of 6',
@@ -283,7 +291,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Spinach',
         description: 'Organic baby spinach leaves',
-        price: 150.00,
+        price: 50.00,
         image: 'spinach.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
@@ -293,7 +301,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Tomatoes',
         description: 'Vine-ripened red tomatoes',
-        price: 50.00,
+        price: 30.00,
         image: 'tomatoes.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
@@ -303,7 +311,7 @@ async function seedDatabase(force = false) {
       {
         name: 'Potatoes',
         description: 'Fresh farm potatoes',
-        price: 70.00,
+        price: 25.00,
         image: 'potatoes.png',
         categoryId: categories[1].id, // Vegetables Pack
         unitTypeId: unitTypes[0].id, // KG - bulk vegetable
@@ -1535,8 +1543,8 @@ async function seedDatabase(force = false) {
     // Add products to packs - assign products to all packs
     await PackProduct.bulkCreate([
       // Vegetables packs
-      { packId: vegWeeklyPack.id, productId: products[0].id, quantity: 2, unitPrice: 150.00 }, // Spinach
-      { packId: vegWeeklyPack.id, productId: products[1].id, quantity: 3, unitPrice: 50.00 }, // Tomatoes
+      { packId: vegWeeklyPack.id, productId: products[0].id, quantity: 2, unitPrice: 50.00 }, // Spinach
+      { packId: vegWeeklyPack.id, productId: products[1].id, quantity: 3, unitPrice: products[1].price }, // Tomatoes
       { packId: vegWeeklyPack.id, productId: products[2].id, quantity: 2, unitPrice: 70.00 }, // Potatoes
       { packId: vegWeeklyPack.id, productId: products[3].id, quantity: 2, unitPrice: 250.00 }, // Carrots
       { packId: vegWeeklyPack.id, productId: products[4].id, quantity: 2, unitPrice: 60.00 }, // Onions
@@ -1797,3 +1805,16 @@ if (require.main === module) {
 }
 
 module.exports = seedDatabase;
+
+
+
+
+
+
+
+
+
+
+
+
+

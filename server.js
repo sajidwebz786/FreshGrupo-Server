@@ -243,9 +243,16 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
     // ==============================
     app.listen(PORT, '0.0.0.0', async () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`SEED_ON_STARTUP: ${process.env.SEED_ON_STARTUP}`);
 
       if (process.env.SEED_ON_STARTUP === 'true') {
-        await global.seedDatabase(true);
+        console.log('🌱 Starting database seeding...');
+        try {
+          await global.seedDatabase(false); // Don't force
+          console.log('✅ Database seeding completed');
+        } catch (error) {
+          console.error('❌ Database seeding failed:', error);
+        }
       }
     });
 

@@ -1,14 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const { Cart, Pack } = require('../models');
+const verifyToken = require('../middleware/auth');
 
 /**
  * GET /api/cart/:userId
  * Fetch user's active cart items
  */
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', verifyToken, async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const userId = parseInt(req.params.userId);
+
+    if (req.user.id !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
     const cartItems = await Cart.findAll({
       where: { userId, isActive: true },
@@ -31,9 +36,10 @@ router.get('/:userId', async (req, res) => {
  * POST /api/cart
  * Add item to cart
  */
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
   try {
-    const { userId, packId, quantity, isCustom, customPackName, customPackItems, unitPrice } = req.body;
+    const { packId, quantity, isCustom, customPackName, customPackItems, unitPrice } = req.body;
+    const userId = req.user.id;
 
     let unitPriceValue = unitPrice;
     let totalPriceValue;
@@ -71,12 +77,15 @@ router.post('/', async (req, res) => {
  * PUT /api/cart/:id
  * Update quantity of cart item
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
   try {
     const { quantity } = req.body;
     const cartItem = await Cart.findByPk(req.params.id);
 
     if (cartItem) {
+      if (cartItem.userId !== req.user.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
       await cartItem.update({
         quantity,
         totalPrice: quantity * cartItem.unitPrice,
@@ -94,10 +103,13 @@ router.put('/:id', async (req, res) => {
  * DELETE /api/cart/:id
  * Remove item from cart
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const cartItem = await Cart.findByPk(req.params.id);
     if (cartItem) {
+      if (cartItem.userId !== req.user.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
       await cartItem.update({ isActive: false });
       res.json({ message: "Cart item removed successfully" });
     } else {
