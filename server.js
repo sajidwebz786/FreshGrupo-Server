@@ -94,6 +94,89 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       }
     });
 
+    app.post('/api/categories', async (req, res) => {
+      try {
+        const category = await Category.create(req.body);
+        res.json(category);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.put('/api/categories/:id', async (req, res) => {
+      try {
+        const [updated] = await Category.update(req.body, { where: { id: req.params.id } });
+        if (updated) {
+          const category = await Category.findByPk(req.params.id);
+          res.json(category);
+        } else {
+          res.status(404).json({ error: 'Category not found' });
+        }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.delete('/api/categories/:id', async (req, res) => {
+      try {
+        const deleted = await Category.destroy({ where: { id: req.params.id } });
+        if (deleted) {
+          res.json({ message: 'Category deleted' });
+        } else {
+          res.status(404).json({ error: 'Category not found' });
+        }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // ==============================
+    // Unit Type Routes
+    // ==============================
+    app.get('/api/unit-types', async (_, res) => {
+      try {
+        res.json(await UnitType.findAll());
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.post('/api/unit-types', async (req, res) => {
+      try {
+        const unitType = await UnitType.create(req.body);
+        res.json(unitType);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.put('/api/unit-types/:id', async (req, res) => {
+      try {
+        const [updated] = await UnitType.update(req.body, { where: { id: req.params.id } });
+        if (updated) {
+          const unitType = await UnitType.findByPk(req.params.id);
+          res.json(unitType);
+        } else {
+          res.status(404).json({ error: 'UnitType not found' });
+        }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.delete('/api/unit-types/:id', async (req, res) => {
+      try {
+        const deleted = await UnitType.destroy({ where: { id: req.params.id } });
+        if (deleted) {
+          res.json({ message: 'UnitType deleted' });
+        } else {
+          res.status(404).json({ error: 'UnitType not found' });
+        }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
     // ==============================
     // Product Routes
     // ==============================
@@ -106,6 +189,47 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
           ],
         });
         res.json(products);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.post('/api/products', async (req, res) => {
+      try {
+        const product = await Product.create(req.body);
+        res.json(product);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.put('/api/products/:id', async (req, res) => {
+      try {
+        const [updated] = await Product.update(req.body, { where: { id: req.params.id } });
+        if (updated) {
+          const product = await Product.findByPk(req.params.id, {
+            include: [
+              { model: Category },
+              { model: UnitType }
+            ],
+          });
+          res.json(product);
+        } else {
+          res.status(404).json({ error: 'Product not found' });
+        }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.delete('/api/products/:id', async (req, res) => {
+      try {
+        const deleted = await Product.destroy({ where: { id: req.params.id } });
+        if (deleted) {
+          res.json({ message: 'Product deleted' });
+        } else {
+          res.status(404).json({ error: 'Product not found' });
+        }
       } catch (e) {
         res.status(500).json({ error: e.message });
       }
@@ -157,6 +281,139 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
         }
 
         res.json(pack);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.post('/api/packs', async (req, res) => {
+      try {
+        const pack = await Pack.create(req.body);
+        res.json(pack);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.put('/api/packs/:id', async (req, res) => {
+      try {
+        const [updated] = await Pack.update(req.body, { where: { id: req.params.id } });
+        if (updated) {
+          const pack = await Pack.findByPk(req.params.id, {
+            include: [
+              { model: Category },
+              { model: PackType },
+              {
+                model: Product,
+                through: { attributes: ['quantity', 'unitPrice'] },
+                include: [UnitType],
+              },
+            ],
+          });
+          res.json(pack);
+        } else {
+          res.status(404).json({ error: 'Pack not found' });
+        }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.delete('/api/packs/:id', async (req, res) => {
+      try {
+        const deleted = await Pack.destroy({ where: { id: req.params.id } });
+        if (deleted) {
+          res.json({ message: 'Pack deleted' });
+        } else {
+          res.status(404).json({ error: 'Pack not found' });
+        }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // ==============================
+    // Pack Type Routes
+    // ==============================
+    app.get('/api/pack-types', async (_, res) => {
+      try {
+        res.json(await PackType.findAll());
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.post('/api/pack-types', async (req, res) => {
+      try {
+        const packType = await PackType.create(req.body);
+        res.json(packType);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.put('/api/pack-types/:id', async (req, res) => {
+      try {
+        const [updated] = await PackType.update(req.body, { where: { id: req.params.id } });
+        if (updated) {
+          const packType = await PackType.findByPk(req.params.id);
+          res.json(packType);
+        } else {
+          res.status(404).json({ error: 'PackType not found' });
+        }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.delete('/api/pack-types/:id', async (req, res) => {
+      try {
+        const deleted = await PackType.destroy({ where: { id: req.params.id } });
+        if (deleted) {
+          res.json({ message: 'PackType deleted' });
+        } else {
+          res.status(404).json({ error: 'PackType not found' });
+        }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // ==============================
+    // Pack Product Routes
+    // ==============================
+    app.post('/api/pack-products/bulk', async (req, res) => {
+      try {
+        const { packId, products } = req.body;
+        const packProducts = products.map(p => ({
+          packId,
+          productId: p.productId,
+          quantity: p.quantity,
+          unitPrice: p.unitPrice,
+        }));
+        const created = await PackProduct.bulkCreate(packProducts);
+        res.json(created);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.get('/api/packs/:packId/products', async (req, res) => {
+      try {
+        const packProducts = await PackProduct.findAll({
+          where: { packId: req.params.packId },
+          include: [Product],
+        });
+        res.json(packProducts);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.delete('/api/packs/:packId/products', async (req, res) => {
+      try {
+        await PackProduct.destroy({ where: { packId: req.params.packId } });
+        res.json({ message: 'Pack products deleted' });
       } catch (e) {
         res.status(500).json({ error: e.message });
       }
