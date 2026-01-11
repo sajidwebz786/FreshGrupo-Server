@@ -71,6 +71,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
     app.use('/api/cart', require('./routes/cart'));
     app.use('/api/addresses', require('./routes/addresses'));
 
+     app.use('/api/users', require('./routes/users'));
     // ==============================
     // Health & Base
     // ==============================
