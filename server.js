@@ -5,6 +5,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const Razorpay = require('razorpay');
+const multer = require('multer');
+const path = require('path');
 const db = require('./models');
 
 // ==============================
@@ -32,6 +34,22 @@ app.use(
 );
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Multer configuration for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
 
 // ==============================
 // Database Init and Server Start
@@ -94,18 +112,26 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       }
     });
 
-    app.post('/api/categories', async (req, res) => {
+    app.post('/api/categories', upload.single('image'), async (req, res) => {
       try {
-        const category = await Category.create(req.body);
+        const categoryData = { ...req.body };
+        if (req.file) {
+          categoryData.image = `/uploads/${req.file.filename}`;
+        }
+        const category = await Category.create(categoryData);
         res.json(category);
       } catch (e) {
         res.status(500).json({ error: e.message });
       }
     });
 
-    app.put('/api/categories/:id', async (req, res) => {
+    app.put('/api/categories/:id', upload.single('image'), async (req, res) => {
       try {
-        const [updated] = await Category.update(req.body, { where: { id: req.params.id } });
+        const categoryData = { ...req.body };
+        if (req.file) {
+          categoryData.image = `/uploads/${req.file.filename}`;
+        }
+        const [updated] = await Category.update(categoryData, { where: { id: req.params.id } });
         if (updated) {
           const category = await Category.findByPk(req.params.id);
           res.json(category);
@@ -194,18 +220,26 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
       }
     });
 
-    app.post('/api/products', async (req, res) => {
+    app.post('/api/products', upload.single('image'), async (req, res) => {
       try {
-        const product = await Product.create(req.body);
+        const productData = { ...req.body };
+        if (req.file) {
+          productData.image = `/uploads/${req.file.filename}`;
+        }
+        const product = await Product.create(productData);
         res.json(product);
       } catch (e) {
         res.status(500).json({ error: e.message });
       }
     });
 
-    app.put('/api/products/:id', async (req, res) => {
+    app.put('/api/products/:id', upload.single('image'), async (req, res) => {
       try {
-        const [updated] = await Product.update(req.body, { where: { id: req.params.id } });
+        const productData = { ...req.body };
+        if (req.file) {
+          productData.image = `/uploads/${req.file.filename}`;
+        }
+        const [updated] = await Product.update(productData, { where: { id: req.params.id } });
         if (updated) {
           const product = await Product.findByPk(req.params.id, {
             include: [
