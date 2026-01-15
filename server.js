@@ -116,7 +116,7 @@ const upload = multer({ storage: storage });
       try {
         const categoryData = { ...req.body };
         if (req.file) {
-          categoryData.image = `/uploads/${req.file.filename}`;
+          categoryData.image = `${process.env.BASE_URL || 'http://localhost:3001'}/uploads/${req.file.filename}`;
         }
         const category = await Category.create(categoryData);
         res.json(category);
@@ -129,7 +129,7 @@ const upload = multer({ storage: storage });
       try {
         const categoryData = { ...req.body };
         if (req.file) {
-          categoryData.image = `/uploads/${req.file.filename}`;
+          categoryData.image = `${process.env.BASE_URL || 'http://localhost:3001'}/uploads/${req.file.filename}`;
         }
         const [updated] = await Category.update(categoryData, { where: { id: req.params.id } });
         if (updated) {
@@ -224,7 +224,7 @@ const upload = multer({ storage: storage });
       try {
         const productData = { ...req.body };
         if (req.file) {
-          productData.image = `/uploads/${req.file.filename}`;
+          productData.image = `${process.env.BASE_URL || 'http://localhost:3001'}/uploads/${req.file.filename}`;
         }
         const product = await Product.create(productData);
         res.json(product);
@@ -237,7 +237,7 @@ const upload = multer({ storage: storage });
       try {
         const productData = { ...req.body };
         if (req.file) {
-          productData.image = `/uploads/${req.file.filename}`;
+          productData.image = `${process.env.BASE_URL || 'http://localhost:3001'}/uploads/${req.file.filename}`;
         }
         const [updated] = await Product.update(productData, { where: { id: req.params.id } });
         if (updated) {
