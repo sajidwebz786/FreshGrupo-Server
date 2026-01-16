@@ -127,7 +127,11 @@ const upload = multer({ storage: storage });
         const category = await Category.create(categoryData);
         res.json(category);
       } catch (e) {
-        res.status(500).json({ error: e.message });
+        if (e.name === 'SequelizeValidationError' || e.name === 'SequelizeUniqueConstraintError') {
+          res.status(400).json({ error: e.errors ? e.errors.map(err => err.message).join(', ') : e.message });
+        } else {
+          res.status(500).json({ error: e.message });
+        }
       }
     });
 
@@ -149,7 +153,11 @@ const upload = multer({ storage: storage });
           res.status(404).json({ error: 'Category not found' });
         }
       } catch (e) {
-        res.status(500).json({ error: e.message });
+        if (e.name === 'SequelizeValidationError' || e.name === 'SequelizeUniqueConstraintError') {
+          res.status(400).json({ error: e.errors ? e.errors.map(err => err.message).join(', ') : e.message });
+        } else {
+          res.status(500).json({ error: e.message });
+        }
       }
     });
 
