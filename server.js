@@ -548,6 +548,14 @@ const upload = multer({ storage: storage });
     // ==============================
     // Error Handlers
     // ==============================
+    app.use((err, req, res, next) => {
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({ error: 'File upload error: ' + err.message });
+      }
+      console.error('Unhandled error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    });
+
     app.use((_, res) => {
       res.status(404).json({ error: 'Route not found' });
     });
