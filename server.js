@@ -133,13 +133,17 @@ const upload = multer({ storage: storage });
 
     app.put('/api/categories/:id', upload.single('image'), async (req, res) => {
       try {
+        const categoryId = parseInt(req.params.id);
+        if (isNaN(categoryId)) {
+          return res.status(400).json({ error: 'Invalid category ID' });
+        }
         const categoryData = { ...req.body };
         if (req.file) {
           categoryData.image = req.file.path; // Cloudinary URL
         }
-        const [updated] = await Category.update(categoryData, { where: { id: req.params.id } });
+        const [updated] = await Category.update(categoryData, { where: { id: categoryId } });
         if (updated) {
-          const category = await Category.findByPk(req.params.id);
+          const category = await Category.findByPk(categoryId);
           res.json(category);
         } else {
           res.status(404).json({ error: 'Category not found' });
@@ -151,7 +155,11 @@ const upload = multer({ storage: storage });
 
     app.delete('/api/categories/:id', async (req, res) => {
       try {
-        const deleted = await Category.destroy({ where: { id: req.params.id } });
+        const categoryId = parseInt(req.params.id);
+        if (isNaN(categoryId)) {
+          return res.status(400).json({ error: 'Invalid category ID' });
+        }
+        const deleted = await Category.destroy({ where: { id: categoryId } });
         if (deleted) {
           res.json({ message: 'Category deleted' });
         } else {
