@@ -46,14 +46,20 @@ cloudinary.config({
 });
 
 // Cloudinary storage configuration
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'fresh-grupo',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-    transformation: [{ width: 800, height: 600, crop: 'limit' }]
-  }
-});
+let storage;
+if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'your-cloud-name') {
+  storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: 'fresh-grupo',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+      transformation: [{ width: 800, height: 600, crop: 'limit' }]
+    }
+  });
+} else {
+  // Fallback to memory storage if Cloudinary not configured
+  storage = multer.memoryStorage();
+}
 
 const upload = multer({ storage: storage });
 
@@ -122,7 +128,12 @@ const upload = multer({ storage: storage });
       try {
         const categoryData = { ...req.body };
         if (req.file) {
-          categoryData.image = req.file.path; // Cloudinary URL
+          if (req.file.path) {
+            categoryData.image = req.file.path; // Cloudinary URL
+          } else {
+            // Memory storage, skip image for now
+            console.log('Image uploaded to memory, skipping save');
+          }
         }
         const category = await Category.create(categoryData);
         res.json(category);
@@ -143,7 +154,12 @@ const upload = multer({ storage: storage });
         }
         const categoryData = { ...req.body };
         if (req.file) {
-          categoryData.image = req.file.path; // Cloudinary URL
+          if (req.file.path) {
+            categoryData.image = req.file.path; // Cloudinary URL
+          } else {
+            // Memory storage, skip image for now
+            console.log('Image uploaded to memory, skipping save');
+          }
         }
         const [updated] = await Category.update(categoryData, { where: { id: categoryId } });
         if (updated) {
