@@ -464,6 +464,12 @@ const upload = multer({ storage: storage });
           return res.status(400).json({ error: 'Invalid packId' });
         }
 
+        // Check if pack exists
+        const packExists = await Pack.findByPk(parseInt(packId));
+        if (!packExists) {
+          return res.status(400).json({ error: 'Pack not found' });
+        }
+
         // Validate products
         if (!Array.isArray(products) || products.length === 0) {
           return res.status(400).json({ error: 'Products array is required' });
@@ -478,6 +484,11 @@ const upload = multer({ storage: storage });
           }
           if (parseFloat(p.unitPrice) <= 0) {
             return res.status(400).json({ error: 'Unit price must be greater than 0' });
+          }
+          // Check if product exists
+          const productExists = await Product.findByPk(parseInt(p.productId));
+          if (!productExists) {
+            return res.status(400).json({ error: `Product with id ${p.productId} not found` });
           }
         }
 
