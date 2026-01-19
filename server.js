@@ -457,15 +457,43 @@ const upload = multer({ storage: storage });
     app.post('/api/pack-products/bulk', async (req, res) => {
       try {
         const { packId, products } = req.body;
+        console.log('Bulk create pack products:', { packId, products });
+
+        // Validate packId
+        if (!packId || isNaN(packId)) {
+          return res.status(400).json({ error: 'Invalid packId' });
+        }
+
+        // Validate products
+        if (!Array.isArray(products) || products.length === 0) {
+          return res.status(400).json({ error: 'Products array is required' });
+        }
+
+        for (const p of products) {
+          if (!p.productId || !p.quantity || !p.unitPrice) {
+            return res.status(400).json({ error: 'Invalid product data: missing productId, quantity, or unitPrice' });
+          }
+          if (p.quantity <= 0) {
+            return res.status(400).json({ error: 'Quantity must be greater than 0' });
+          }
+          if (parseFloat(p.unitPrice) <= 0) {
+            return res.status(400).json({ error: 'Unit price must be greater than 0' });
+          }
+        }
+
         const packProducts = products.map(p => ({
-          packId,
-          productId: p.productId,
-          quantity: p.quantity,
-          unitPrice: p.unitPrice,
+          packId: parseInt(packId),
+          productId: parseInt(p.productId),
+          quantity: parseInt(p.quantity),
+          unitPrice: parseFloat(p.unitPrice),
         }));
-        const created = await PackProduct.bulkCreate(packProducts);
+
+        console.log('Mapped pack products:', packProducts);
+
+        const created = await PackProduct.bulkCreate(packProducts, { validate: true });
         res.json(created);
       } catch (e) {
+        console.error('Error in bulk create pack products:', e);
         res.status(500).json({ error: e.message });
       }
     });
