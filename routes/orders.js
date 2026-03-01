@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { Order, Payment, OrderPackContent, Pack, PackProduct, Product, PackType, Category, sequelize, User } = require('../models');
+const Razorpay = require("razorpay");
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
+const { Order, Payment, OrderPackContent, Pack, PackProduct, Product, PackType, Category, sequelize, User, Cart } = require('../models');
 
 /**
  * GET /api/orders
@@ -75,6 +81,56 @@ router.get('/:userId', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/orders/razorpay/create-order
+ * Create Razorpay order using pack finalPrice
+ */
+router.post('/razorpay/create-order', async (req, res) => {
+  try {
+    const { packageId, customer } = req.body;
+
+    if (!packageId) {
+      return res.status(400).json({ error: 'packageId is required' });
+    }
+
+    // ✅ Get pack details
+    const pack = await Pack.findByPk(packageId);
+
+    if (!pack) {
+      return res.status(404).json({ error: 'Pack not found' });
+    }
+
+    const amount = pack.finalPrice;
+
+    // ✅ Create Razorpay order
+    const razorpayOrder = await razorpay.orders.create({
+      amount: Math.round(amount * 100), // paise
+      currency: 'INR',
+      receipt: `pack_${packageId}_${Date.now()}`,
+      payment_capture: 1,
+      notes: {
+        packageId,
+        customerName: customer?.name || '',
+        customerEmail: customer?.email || '',
+        customerPhone: customer?.phone || ''
+      }
+     
+    });
+
+    res.status(200).json({
+      success: true,
+      razorpayOrderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      key: process.env.RAZORPAY_KEY_ID,
+      packDetails: pack
+    });
+
+  } catch (error) {
+    console.error('Razorpay order creation error:', error);
+    res.status(500).json({ error: 'Failed to create Razorpay order' });
+  }
+});
 /**
  * POST /api/orders
  * Create new order + payment (transaction safe)
@@ -159,6 +215,23 @@ router.post('/', async (req, res) => {
     }
 
     await transaction.commit();
+
+    // Clear user's cart after successful order
+    console.log(`Attempting to clear cart for userId: ${userId}, orderId: ${newOrder.id}`);
+    try {
+      // First check what carts exist
+      const beforeCarts = await Cart.findAll({ where: { userId } });
+      console.log(`Found ${beforeCarts.length} carts for user ${userId}:`, beforeCarts.map(c => ({ id: c.id, isActive: c.isActive })));
+      
+      const [updateCount] = await Cart.update(
+        { isActive: false },
+        { where: { userId, isActive: true } }
+      );
+      console.log(`Cart cleared for user ${userId} after order ${newOrder.id}, affected rows: ${updateCount}`);
+    } catch (cartError) {
+      console.error('Error clearing cart:', cartError);
+      // Don't fail the order if cart clearing fails
+    }
 
     res.status(201).json({
       ...newOrder.toJSON(),

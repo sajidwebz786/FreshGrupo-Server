@@ -59,9 +59,9 @@ router.post('/admin-login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Check if user is admin
-    if (user.role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+    // Check if user is admin or staff
+    if (user.role !== 'admin' && user.role !== 'staff') {
+      return res.status(403).json({ message: 'Access denied. Admin or Staff privileges required.' });
     }
 
     // Check password

@@ -51,7 +51,7 @@ router.get('/categories/:categoryId/packs', async (req, res) => {
         attributes: ['id', 'name', 'duration', 'basePrice']
       }, {
         model: Product,
-        through: { attributes: [] },
+        through: { attributes: ['unitPrice', 'quantity'] }, // Include PackProduct junction table data
         attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock']
       }],
       order: [['name', 'ASC']]

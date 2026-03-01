@@ -3,28 +3,36 @@ const bcrypt = require('bcrypt');
 // Initialize database and models when run directly
 let modelsInitialized = false;
 let User, Category, Product, UnitType, PackType, Pack, PackProduct;
+let Wallet, WalletTransaction, CreditPackage, Notification, RewardConfig;
 
 async function initializeModels() {
   if (!modelsInitialized) {
-    const sequelize = require('../config/database');
+    // Get models from index which includes the sequelize instance
+    const db = require('../models/index');
+    const sequelize = db.sequelize;
 
     // Test connection
     await sequelize.authenticate();
     console.log('Database connection established.');
 
-    // Load models
-    const models = require('../models/index');
-    User = models.User;
-    Category = models.Category;
-    Product = models.Product;
-    UnitType = models.UnitType;
-    PackType = models.PackType;
-    Pack = models.Pack;
-    PackProduct = models.PackProduct;
+    // Load models from the db object
+    User = db.User;
+    Category = db.Category;
+    Product = db.Product;
+    UnitType = db.UnitType;
+    PackType = db.PackType;
+    Pack = db.Pack;
+    PackProduct = db.PackProduct;
+    // New wallet/credits models
+    Wallet = db.Wallet;
+    WalletTransaction = db.WalletTransaction;
+    CreditPackage = db.CreditPackage;
+    Notification = db.Notification;
+    RewardConfig = db.RewardConfig;
 
-    // Sync database
-    await sequelize.sync();
-    console.log('Database synced.');
+    // Sync database - use force:true to drop and recreate tables
+    await sequelize.sync({ force: true });
+    console.log('Database synced with force:true.');
 
     modelsInitialized = true;
   }
@@ -36,28 +44,9 @@ async function seedDatabase(force = false) {
     // Initialize models if not already done
     const sequelize = await initializeModels();
 
-    if (force) {
-      // Force seeding: drop and recreate all tables to flush existing data
-      console.log('Force seeding: flushing existing data...');
-      // Drop all tables in the public schema
-      await sequelize.query(`
-        DO $$ DECLARE
-             r RECORD;
-         BEGIN
-             FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
-                 EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-             END LOOP;
-         END $$;
-      `);
-      console.log('Existing data flushed.');
-      // Re-sync after dropping
-      await sequelize.sync();
-      console.log('Database re-synced.');
-    } else {
-      // Just sync without dropping
-      await sequelize.sync();
-      console.log('Database synced.');
-    }
+    // Sync database with force:true to ensure tables exist
+    await sequelize.sync({ force: true });
+    console.log('Database synced with force:true.');
 
     console.log('Seeding database...');
 
@@ -269,19 +258,49 @@ async function seedDatabase(force = false) {
     // Create pack types
     const packTypes = await PackType.bulkCreate([
       {
-        name: 'Weekly Pack',
-        duration: 'weekly',
-        basePrice: 2500.00
+        name: 'Small Fruit Pack',
+        duration: 'small',
+        basePrice: 350.00,
+        sizeLabel: 'Small',
+        persons: '1-2 Persons',
+        days: '3-4 Days',
+        fruitCount: '4-5 Seasonal Fruits',
+        weight: 'Approx 3-4 Kg',
+        targetAudience: 'Basic Family Consumption'
       },
       {
-        name: 'Bi-Weekly Pack',
-        duration: 'bi-weekly',
-        basePrice: 5000.00
+        name: 'Medium Fruit Pack',
+        duration: 'medium',
+        basePrice: 650.00,
+        sizeLabel: 'Medium',
+        persons: '3-4 Persons',
+        days: '1 Week',
+        fruitCount: '6-8 Fruit Varieties',
+        weight: 'Approx 6-8 Kg',
+        targetAudience: 'Kids + Working Family'
       },
       {
-        name: 'Monthly Pack',
-        duration: 'monthly',
-        basePrice: 10000.00
+        name: 'Large Fruit Pack',
+        duration: 'large',
+        basePrice: 1200.00,
+        sizeLabel: 'Large',
+        persons: 'Joint Family / Health Lovers',
+        days: '1 Week+',
+        fruitCount: '8-12 Premium + Seasonal Fruits',
+        weight: '10-15 Kg',
+        targetAudience: 'Health Enthusiasts',
+        includesExotic: true
+      },
+      {
+        name: 'Custom Pack',
+        duration: 'custom',
+        basePrice: 0,
+        sizeLabel: 'Custom',
+        persons: 'Any',
+        days: 'Custom',
+        fruitCount: 'Your Choice',
+        weight: 'Custom',
+        targetAudience: 'Personalized'
       }
     ]);
 
@@ -1773,11 +1792,71 @@ async function seedDatabase(force = false) {
       await pack.update({ finalPrice: total, basePrice: total });
     }
 
+    // Create credit packages for wallet system
+    const creditPackages = await CreditPackage.bulkCreate([
+      {
+        name: 'Starter Pack',
+        credits: 100,
+        price: 100.00,
+        bonusCredits: 5,
+        description: 'Perfect for trying out',
+        isPopular: false,
+        sortOrder: 1
+      },
+      {
+        name: 'Regular Pack',
+        credits: 500,
+        price: 500.00,
+        bonusCredits: 30,
+        description: 'Best value for regular users',
+        isPopular: true,
+        sortOrder: 2
+      },
+      {
+        name: 'Family Pack',
+        credits: 1000,
+        price: 1000.00,
+        bonusCredits: 75,
+        description: 'Great for families',
+        isPopular: false,
+        sortOrder: 3
+      },
+      {
+        name: 'Premium Pack',
+        credits: 2500,
+        price: 2500.00,
+        bonusCredits: 250,
+        description: 'For serious fruit lovers',
+        isPopular: false,
+        sortOrder: 4
+      },
+      {
+        name: 'Ultimate Pack',
+        credits: 5000,
+        price: 5000.00,
+        bonusCredits: 600,
+        description: 'Maximum savings',
+        isPopular: false,
+        sortOrder: 5
+      }
+    ]);
+
+    // Create reward configuration
+    const rewardConfig = await RewardConfig.create({
+      name: 'Default Reward',
+      rewardPercentage: 5.00,
+      minOrderAmount: 0,
+      maxRewardCredits: 100,
+      isActive: true,
+      description: 'Earn 5% back on every order as credits (max 100 credits per order)'
+    });
+
     console.log('Database seeded successfully!');
     console.log(`Created ${users.length} users, ${categories.length} categories, ${unitTypes.length} unit types, ${products.length} products, ${packTypes.length} pack types, and ${packs.length} packs`);
     console.log(`Pack breakdown: ${packs.filter(p => p.categoryId === categories[1].id).length} vegetable packs, ${packs.filter(p => p.categoryId === categories[0].id).length} fruit packs, ${packs.filter(p => p.categoryId === categories[2].id).length} grocery packs, ${packs.filter(p => p.categoryId === categories[3].id).length} juice packs, and more`);
+    console.log(`Created ${creditPackages.length} credit packages and reward configuration`);
 
-    return { users, categories, unitTypes, products, packTypes, packs };
+    return { users, categories, unitTypes, products, packTypes, packs, creditPackages, rewardConfig };
   } catch (error) {
     console.error('Error seeding database:', error);
     throw error;

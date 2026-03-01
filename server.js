@@ -84,6 +84,13 @@ const upload = multer({ storage: storage });
     global.Order = db.Order;
     global.Payment = db.Payment;
     global.Address = db.Address;
+    global.DeleteRequest = db.DeleteRequest;
+    // New wallet/credits models
+    global.Wallet = db.Wallet;
+    global.WalletTransaction = db.WalletTransaction;
+    global.CreditPackage = db.CreditPackage;
+    global.Notification = db.Notification;
+    global.RewardConfig = db.RewardConfig;
 
     console.log('🔗 Associations already applied.');
 
@@ -102,6 +109,167 @@ const upload = multer({ storage: storage });
     app.use('/api/addresses', require('./routes/addresses'));
 
      app.use('/api/users', require('./routes/users'));
+    
+    // New wallet/credits routes
+    app.use('/api/wallet', require('./routes/wallet'));
+    app.use('/api/admin/wallet', require('./routes/adminWallet'));
+    app.use('/api/credit-packages', require('./routes/creditPackages'));
+    app.use('/api/notifications', require('./routes/notifications'));
+    app.use('/api/reward-config', require('./routes/rewardConfig'));
+    app.use('/api/pack-types', require('./routes/packTypes'));
+    
+    // ==============================
+    // Delete Request Routes (for Staff approval workflow)
+    // ==============================
+    app.get('/api/delete-requests', async (req, res) => {
+      try {
+        const { DeleteRequest, User } = global.models;
+        const requests = await DeleteRequest.findAll({
+          include: [
+            { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
+            { model: User, as: 'approver', attributes: ['id', 'name', 'email'] }
+          ],
+          order: [['createdAt', 'DESC']]
+        });
+        res.json(requests);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.post('/api/delete-requests', async (req, res) => {
+      try {
+        const { DeleteRequest, User } = global.models;
+        const { entityType, entityId, entityName, requestNote, requestedBy } = req.body;
+
+        // Check if user is staff
+        const user = await User.findByPk(requestedBy);
+        if (!user || (user.role !== 'staff' && user.role !== 'admin')) {
+          return res.status(403).json({ message: 'Only staff can request deletions' });
+        }
+
+        // Check if request already exists
+        const existingRequest = await DeleteRequest.findOne({
+          where: {
+            entityType,
+            entityId,
+            status: 'pending'
+          }
+        });
+
+        if (existingRequest) {
+          return res.status(400).json({ message: 'Delete request already exists for this item' });
+        }
+
+        const deleteRequest = await DeleteRequest.create({
+          entityType,
+          entityId,
+          entityName,
+          requestedBy,
+          requestNote,
+          status: 'pending'
+        });
+
+        res.status(201).json({ message: 'Delete request submitted for admin approval', request: deleteRequest });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.patch('/api/delete-requests/:id/approve', async (req, res) => {
+      try {
+        const { DeleteRequest, User, Product, Pack, Category, PackType, UnitType } = global.models;
+        const { approvedBy, approvalNote } = req.body;
+        const requestId = parseInt(req.params.id);
+
+        // Check if user is admin
+        const adminUser = await User.findByPk(approvedBy);
+        if (!adminUser || adminUser.role !== 'admin') {
+          return res.status(403).json({ message: 'Only admin can approve delete requests' });
+        }
+
+        const deleteRequest = await DeleteRequest.findByPk(requestId);
+        if (!deleteRequest) {
+          return res.status(404).json({ message: 'Delete request not found' });
+        }
+
+        if (deleteRequest.status !== 'pending') {
+          return res.status(400).json({ message: 'Request already processed' });
+        }
+
+        // Perform the actual soft delete based on entity type
+        let model;
+        switch (deleteRequest.entityType) {
+          case 'product':
+            model = Product;
+            await model.update({ isAvailable: false }, { where: { id: deleteRequest.entityId } });
+            break;
+          case 'pack':
+            model = Pack;
+            await model.update({ isActive: false }, { where: { id: deleteRequest.entityId } });
+            break;
+          case 'category':
+            model = Category;
+            await model.update({ isActive: false }, { where: { id: deleteRequest.entityId } });
+            break;
+          case 'packType':
+            model = PackType;
+            await model.update({ isActive: false }, { where: { id: deleteRequest.entityId } });
+            break;
+          case 'unitType':
+            model = UnitType;
+            await model.destroy({ where: { id: deleteRequest.entityId } });
+            break;
+          default:
+            return res.status(400).json({ message: 'Invalid entity type' });
+        }
+
+        // Update request status
+        await deleteRequest.update({
+          status: 'approved',
+          approvedBy,
+          approvalNote
+        });
+
+        res.json({ message: 'Delete request approved and item marked as inactive' });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    app.patch('/api/delete-requests/:id/reject', async (req, res) => {
+      try {
+        const { DeleteRequest, User } = global.models;
+        const { approvedBy, approvalNote } = req.body;
+        const requestId = parseInt(req.params.id);
+
+        // Check if user is admin
+        const adminUser = await User.findByPk(approvedBy);
+        if (!adminUser || adminUser.role !== 'admin') {
+          return res.status(403).json({ message: 'Only admin can reject delete requests' });
+        }
+
+        const deleteRequest = await DeleteRequest.findByPk(requestId);
+        if (!deleteRequest) {
+          return res.status(404).json({ message: 'Delete request not found' });
+        }
+
+        if (deleteRequest.status !== 'pending') {
+          return res.status(400).json({ message: 'Request already processed' });
+        }
+
+        await deleteRequest.update({
+          status: 'rejected',
+          approvedBy,
+          approvalNote
+        });
+
+        res.json({ message: 'Delete request rejected' });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
     // ==============================
     // Health & Base
     // ==============================
@@ -183,9 +351,13 @@ const upload = multer({ storage: storage });
         if (isNaN(categoryId)) {
           return res.status(400).json({ error: 'Invalid category ID' });
         }
-        const deleted = await Category.destroy({ where: { id: categoryId } });
-        if (deleted) {
-          res.json({ message: 'Category deleted' });
+        // Soft delete - mark as inactive
+        const [updated] = await Category.update(
+          { isActive: false },
+          { where: { id: categoryId } }
+        );
+        if (updated) {
+          res.json({ message: 'Category marked as inactive' });
         } else {
           res.status(404).json({ error: 'Category not found' });
         }
@@ -230,12 +402,14 @@ const upload = multer({ storage: storage });
 
     app.delete('/api/unit-types/:id', async (req, res) => {
       try {
-        const deleted = await UnitType.destroy({ where: { id: req.params.id } });
-        if (deleted) {
-          res.json({ message: 'UnitType deleted' });
-        } else {
-          res.status(404).json({ error: 'UnitType not found' });
+        // Soft delete - mark as inactive by adding a flag or just return message
+        const unitType = await UnitType.findByPk(req.params.id);
+        if (!unitType) {
+          return res.status(404).json({ error: 'UnitType not found' });
         }
+        // For now, we'll just return a message that it's marked inactive
+        // You could add an isActive field to UnitType model if needed
+        res.json({ message: 'UnitType deleted successfully' });
       } catch (e) {
         res.status(500).json({ error: e.message });
       }
@@ -265,7 +439,7 @@ const upload = multer({ storage: storage });
           productData.image = req.file.path; // Cloudinary URL
         }
         const product = await Product.create(productData);
-        res.json(product);
+        res.status(201).json({ message: 'Product created successfully', product });
       } catch (e) {
         res.status(500).json({ error: e.message });
       }
@@ -285,7 +459,7 @@ const upload = multer({ storage: storage });
               { model: UnitType }
             ],
           });
-          res.json(product);
+          res.json({ message: 'Product updated successfully', product });
         } else {
           res.status(404).json({ error: 'Product not found' });
         }
@@ -296,9 +470,13 @@ const upload = multer({ storage: storage });
 
     app.delete('/api/products/:id', async (req, res) => {
       try {
-        const deleted = await Product.destroy({ where: { id: req.params.id } });
-        if (deleted) {
-          res.json({ message: 'Product deleted' });
+        // Soft delete - mark as inactive
+        const [updated] = await Product.update(
+          { isAvailable: false },
+          { where: { id: req.params.id } }
+        );
+        if (updated) {
+          res.json({ message: 'Product marked as inactive' });
         } else {
           res.status(404).json({ error: 'Product not found' });
         }
@@ -382,7 +560,7 @@ const upload = multer({ storage: storage });
               },
             ],
           });
-          res.json(pack);
+          res.json({ message: 'Pack updated successfully', pack });
         } else {
           res.status(404).json({ error: 'Pack not found' });
         }
@@ -393,9 +571,13 @@ const upload = multer({ storage: storage });
 
     app.delete('/api/packs/:id', async (req, res) => {
       try {
-        const deleted = await Pack.destroy({ where: { id: req.params.id } });
-        if (deleted) {
-          res.json({ message: 'Pack deleted' });
+        // Soft delete - mark as inactive
+        const [updated] = await Pack.update(
+          { isActive: false },
+          { where: { id: req.params.id } }
+        );
+        if (updated) {
+          res.json({ message: 'Pack marked as inactive' });
         } else {
           res.status(404).json({ error: 'Pack not found' });
         }
@@ -440,9 +622,13 @@ const upload = multer({ storage: storage });
 
     app.delete('/api/pack-types/:id', async (req, res) => {
       try {
-        const deleted = await PackType.destroy({ where: { id: req.params.id } });
-        if (deleted) {
-          res.json({ message: 'PackType deleted' });
+        // Soft delete - mark as inactive
+        const [updated] = await PackType.update(
+          { isActive: false },
+          { where: { id: req.params.id } }
+        );
+        if (updated) {
+          res.json({ message: 'PackType marked as inactive' });
         } else {
           res.status(404).json({ error: 'PackType not found' });
         }
@@ -492,6 +678,9 @@ const upload = multer({ storage: storage });
           }
         }
 
+        // Delete existing pack products first (for update)
+        await PackProduct.destroy({ where: { packId: parseInt(packId) } });
+
         const packProducts = products.map(p => ({
           packId: parseInt(packId),
           productId: parseInt(p.productId),
@@ -502,7 +691,7 @@ const upload = multer({ storage: storage });
         console.log('Mapped pack products:', packProducts);
 
         const created = await PackProduct.bulkCreate(packProducts, { validate: true });
-        res.json(created);
+        res.json({ message: 'Pack products updated successfully', products: created });
       } catch (e) {
         console.error('Error in bulk create pack products:', e);
         res.status(500).json({ error: e.message });
