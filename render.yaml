@@ -1,0 +1,48 @@
+# Render.com Deployment Configuration
+# This file can be used with Render's Blueprint feature for easy deployment
+# See: https://render.com/docs/blueprint-spec
+
+services:
+  # PostgreSQL Database
+  - type: postgres
+    name: freshdb
+    plan: free
+    postgresMajorVersion: "15"
+    postgresMinorVersion: "auto"
+    region: oregon
+    disk:
+      sizeGB: 1
+      mountPath: /var/lib/postgresql/data
+
+  # Web Server
+  - type: web
+    name: freshgrupo-server
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: SEED_ON_STARTUP
+        # Set to 'true' for initial deployment only, then change to 'false'
+        value: "true"
+      - key: DATABASE_URL
+        # This will be automatically set from the postgres service above
+        fromDatabase:
+          name: freshdb
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: RAZORPAY_KEY_ID
+        value: rzp_test_RpA1MZUCwoJYJF
+      - key: RAZORPAY_KEY_SECRET
+        value: mU4GboUoIv01Iv56LETlVw43
+      - key: CLOUDINARY_CLOUD_NAME
+        value: dmk9wvt8w
+      - key: CLOUDINARY_API_KEY
+        value: "323957829126665"
+      - key: CLOUDINARY_API_SECRET
+        value: IHd9PJPZxF_MtR-NagD6y_x8HNE

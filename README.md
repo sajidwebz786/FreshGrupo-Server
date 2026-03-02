@@ -9,6 +9,55 @@ A Node.js/Express API server for the Fresh Groupo application with PostgreSQL da
 - Sample data seeding
 - CORS enabled for cross-origin requests
 - Environment-based configuration
+- **Ready for Render.com deployment**
+
+## 🚀 Render.com Deployment
+
+### Option 1: Deploy with Blueprint (Recommended)
+
+1. Push your code to a GitHub repository
+2. Log in to [Render.com](https://render.com)
+3. Go to "Blueprints" and create a new blueprint
+4. Connect your GitHub repository
+5. Select the `render.yaml` file from `FreshGrupo-Server/`
+6. Click "Apply Blueprint"
+
+Render will automatically create:
+- PostgreSQL database (free tier)
+- Web service
+
+### Option 2: Manual Deployment
+
+1. Create a PostgreSQL database on Render.com
+2. Create a Web Service
+3. Configure environment variables:
+   - `DATABASE_URL`: Connection string from your PostgreSQL database
+   - `NODE_ENV`: production
+   - `PORT`: 3001
+   - `SEED_ON_STARTUP`: true (for first deployment only)
+   - `JWT_SECRET`: Generate a secure random string
+   - `RAZORPAY_KEY_ID`: Your Razorpay key
+   - `RAZORPAY_KEY_SECRET`: Your Razorpay secret
+   - `CLOUDINARY_CLOUD_NAME`: Your Cloudinary cloud name
+   - `CLOUDINARY_API_KEY`: Your Cloudinary API key
+   - `CLOUDINARY_API_SECRET`: Your Cloudinary API secret
+4. Build Command: `npm install`
+5. Start Command: `npm start`
+
+### After Deployment
+
+1. The server will auto-seed the database on first startup (if `SEED_ON_STARTUP=true`)
+2. After seeding, set `SEED_ON_STARTUP=false` to prevent re-seeding
+3. Access your API at: `https://your-service-name.onrender.com`
+4. Health check: `https://your-service-name.onrender.com/health`
+
+### Default Login Credentials (after seeding)
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@freshgrupo.com | Welcome@919 |
+| Customer | john@example.com | password123 |
+| Delivery | delivery@freshgrupo.com | delivery123 |
 
 ## Prerequisites
 

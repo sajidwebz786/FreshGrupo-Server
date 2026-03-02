@@ -814,7 +814,7 @@ const upload = multer({ storage: storage });
       if (process.env.SEED_ON_STARTUP === 'true') {
         console.log('🌱 Starting database seeding...');
         try {
-          await global.seedDatabase(false); // Don't force
+          await global.seedDatabase(true); // Force drop and recreate tables
           console.log('✅ Database seeding completed');
         } catch (error) {
           console.error('❌ Database seeding failed:', error);

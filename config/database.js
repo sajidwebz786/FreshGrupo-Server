@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 console.log("ENV Host:", process.env.DB_HOST);
 console.log("ENV User:", process.env.DB_USER);
 console.log("ENV DB:", process.env.DB_NAME);
