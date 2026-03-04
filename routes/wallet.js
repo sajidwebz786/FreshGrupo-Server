@@ -2,10 +2,25 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 
-// Middleware to verify JWT token
+// Middleware to verify JWT token. Accepts token from multiple locations for compatibility:
+// - Authorization header (Bearer)
+// - x-access-token header
+// - req.query.token
+// - req.body.token
 const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  // Try common locations for token
+  let token = null;
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+  if (authHeader) {
+    const parts = authHeader.split(' ');
+    if (parts.length === 2 && /^Bearer$/i.test(parts[0])) {
+      token = parts[1];
+    } else {
+      token = authHeader; // fallback if header contains token only
+    }
+  }
+
+  if (!token) token = req.headers['x-access-token'] || req.query.token || req.body.token;
 
   if (!token) {
     return res.status(401).json({ message: 'Access token required' });
@@ -77,7 +92,18 @@ router.get('/packages', async (req, res) => {
       where: { isActive: true },
       order: [['sortOrder', 'ASC'], ['credits', 'ASC']]
     });
-    res.json(packages);
+    // Append a pseudo-package that indicates a manual/custom amount option
+    const pkgList = packages.map(p => p);
+    pkgList.push({
+      id: null,
+      name: 'Custom Amount',
+      credits: null,
+      price: null,
+      bonusCredits: 0,
+      isManual: true
+    });
+
+    res.json(pkgList);
   } catch (error) {
     console.error('Error fetching credit packages:', error);
     res.status(500).json({ message: 'Failed to fetch credit packages', error: error.message });
@@ -160,7 +186,7 @@ router.post('/purchase/verify', authenticateToken, async (req, res) => {
     const { razorpayPaymentId, razorpayOrderId, transactionId } = req.body;
     const userId = req.user.id;
 
-    const { Wallet, WalletTransaction, User } = global.models;
+    const { Wallet, WalletTransaction, User, Notification } = global.models;
 
     // Verify the payment with Razorpay
     const payment = await global.razorpay.payments.fetch(razorpayPaymentId);
@@ -393,15 +419,32 @@ router.post('/deduct', authenticateToken, async (req, res) => {
 });
 
 // Get wallet by user ID (for admin or direct access)
-router.get('/:userId', async (req, res) => {
+// Get wallet by user ID (for admin or direct access)
+router.get('/:userId', authenticateToken, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { userId: paramUserId } = req.params;
     const { Wallet } = global.models;
 
-    let wallet = await Wallet.findOne({ where: { userId } });
+    // If requester is admin they may fetch any user's wallet by ID.
+    // Otherwise, use the authenticated user's id and ignore the param to avoid requiring the client to resend it.
+    const requesterId = req.user && req.user.id;
+    const requesterRole = req.user && req.user.role;
+
+    let targetUserId;
+    if (requesterRole === 'admin' && paramUserId) {
+      targetUserId = parseInt(paramUserId, 10);
+    } else {
+      targetUserId = requesterId;
+    }
+
+    if (!targetUserId) {
+      return res.status(400).json({ message: 'User ID not available' });
+    }
+
+    let wallet = await Wallet.findOne({ where: { userId: targetUserId } });
     if (!wallet) {
       wallet = await Wallet.create({
-        userId: parseInt(userId),
+        userId: parseInt(targetUserId, 10),
         balance: 0.00,
         totalCreditsEarned: 0.00,
         totalCreditsSpent: 0.00
