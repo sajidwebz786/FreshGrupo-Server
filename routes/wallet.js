@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const crypto = require("crypto");
 
 // Middleware to verify JWT token. Accepts token from multiple locations for compatibility:
 // - Authorization header (Bearer)
@@ -169,6 +170,7 @@ router.post('/purchase/create-order', authenticateToken, async (req, res) => {
 
     res.json({
       orderId: razorpayOrder.id,
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
       credits,
@@ -181,75 +183,153 @@ router.post('/purchase/create-order', authenticateToken, async (req, res) => {
 });
 
 // Verify payment and add credits
+// router.post('/purchase/verify', authenticateToken, async (req, res) => {
+//   try {
+//     const { razorpayPaymentId, razorpayOrderId, transactionId } = req.body;
+//     const userId = req.user.id;
+
+//     const { Wallet, WalletTransaction, User, Notification } = global.models;
+
+//     // Verify the payment with Razorpay
+//     const payment = await global.razorpay.payments.fetch(razorpayPaymentId);
+    
+//     if (payment.status !== 'captured') {
+//       return res.status(400).json({ message: 'Payment not captured' });
+//     }
+
+//     // Update transaction
+//     const transaction = await WalletTransaction.findByPk(transactionId);
+//     if (!transaction) {
+//       return res.status(404).json({ message: 'Transaction not found' });
+//     }
+
+//     // Get or create wallet
+//     let wallet = await Wallet.findOne({ where: { userId } });
+//     if (!wallet) {
+//       wallet = await Wallet.create({
+//         userId,
+//         balance: 0.00
+//       });
+//     }
+
+//     const credits = parseFloat(transaction.amount);
+//     const newBalance = parseFloat(wallet.balance) + credits;
+
+//     // Update wallet
+//     await wallet.update({
+//       balance: newBalance,
+//       totalCreditsEarned: parseFloat(wallet.totalCreditsEarned) + credits
+//     });
+
+//     // Update transaction
+//     await transaction.update({
+//       balanceAfter: newBalance,
+//       status: 'completed',
+//       razorpayPaymentId,
+//       paymentId: razorpayPaymentId
+//     });
+
+//     // Create notification for admin
+//     const user = await User.findByPk(userId);
+    
+//     await Notification.create({
+//       type: 'credit_purchase',
+//       title: 'Credit Purchase',
+//       message: `${user?.name || 'User'} purchased ${credits} credits for ₹${payment.amount / 100}`,
+//       userId,
+//       referenceId: transaction.id,
+//       referenceType: 'wallet_transaction',
+//       priority: 'normal',
+//       actionRequired: false
+//     });
+
+//     res.json({
+//       success: true,
+//       message: 'Credits added successfully',
+//       newBalance,
+//       creditsAdded: credits
+//     });
+//   } catch (error) {
+//     console.error('Error verifying payment:', error);
+//     res.status(500).json({ message: 'Failed to verify payment', error: error.message });
+//   }
+// });
 router.post('/purchase/verify', authenticateToken, async (req, res) => {
   try {
-    const { razorpayPaymentId, razorpayOrderId, transactionId } = req.body;
+    const {
+      razorpayPaymentId,
+      razorpayOrderId,
+      razorpaySignature,
+      transactionId
+    } = req.body;
+
     const userId = req.user.id;
 
     const { Wallet, WalletTransaction, User, Notification } = global.models;
 
-    // Verify the payment with Razorpay
-    const payment = await global.razorpay.payments.fetch(razorpayPaymentId);
-    
-    if (payment.status !== 'captured') {
-      return res.status(400).json({ message: 'Payment not captured' });
+    // 🔐 VERIFY SIGNATURE
+    const generatedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(razorpayOrderId + "|" + razorpayPaymentId)
+      .digest("hex");
+
+    if (generatedSignature !== razorpaySignature) {
+      return res.status(400).json({ message: "Invalid payment signature" });
     }
 
-    // Update transaction
     const transaction = await WalletTransaction.findByPk(transactionId);
+
     if (!transaction) {
-      return res.status(404).json({ message: 'Transaction not found' });
+      return res.status(404).json({ message: "Transaction not found" });
     }
 
-    // Get or create wallet
     let wallet = await Wallet.findOne({ where: { userId } });
+
     if (!wallet) {
       wallet = await Wallet.create({
         userId,
-        balance: 0.00
+        balance: 0
       });
     }
 
     const credits = parseFloat(transaction.amount);
     const newBalance = parseFloat(wallet.balance) + credits;
 
-    // Update wallet
     await wallet.update({
       balance: newBalance,
-      totalCreditsEarned: parseFloat(wallet.totalCreditsEarned) + credits
+      totalCreditsEarned: parseFloat(wallet.totalCreditsEarned || 0) + credits
     });
 
-    // Update transaction
     await transaction.update({
       balanceAfter: newBalance,
-      status: 'completed',
+      status: "completed",
       razorpayPaymentId,
       paymentId: razorpayPaymentId
     });
 
-    // Create notification for admin
     const user = await User.findByPk(userId);
-    
+
     await Notification.create({
-      type: 'credit_purchase',
-      title: 'Credit Purchase',
-      message: `${user?.name || 'User'} purchased ${credits} credits for ₹${payment.amount / 100}`,
+      type: "credit_purchase",
+      title: "Credit Purchase",
+      message: `${user?.name || "User"} purchased ${credits} credits`,
       userId,
       referenceId: transaction.id,
-      referenceType: 'wallet_transaction',
-      priority: 'normal',
+      referenceType: "wallet_transaction",
+      priority: "normal",
       actionRequired: false
     });
 
     res.json({
       success: true,
-      message: 'Credits added successfully',
+      message: "Credits added successfully",
       newBalance,
       creditsAdded: credits
     });
+
   } catch (error) {
-    console.error('Error verifying payment:', error);
-    res.status(500).json({ message: 'Failed to verify payment', error: error.message });
+    console.error("Verify payment error:", error);
+    res.status(500).json({ message: "Failed to verify payment" });
   }
 });
 
