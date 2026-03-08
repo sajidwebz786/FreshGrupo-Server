@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User, Notification } = require('../models');
 
 const router = express.Router();
 
@@ -122,6 +122,23 @@ router.post('/register', async (req, res) => {
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
+
+    // Create notification for admin about new registration
+    try {
+      await Notification.create({
+        type: 'system',
+        title: 'New User Registration',
+        message: `New user "${user.name}" (${user.email}) has registered${user.phone ? ` with phone: ${user.phone}` : ''}`,
+        userId: user.id,
+        referenceId: user.id,
+        referenceType: 'user',
+        actionRequired: false,
+        priority: 'normal'
+      });
+    } catch (notifError) {
+      console.error('Error creating registration notification:', notifError);
+      // Don't fail the registration if notification fails
+    }
 
     res.status(201).json({
       message: 'User registered successfully',

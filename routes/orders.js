@@ -6,7 +6,7 @@ const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
-const { Order, Payment, OrderPackContent, Pack, PackProduct, Product, PackType, Category, sequelize, User, Cart } = require('../models');
+const { Order, Payment, OrderPackContent, Pack, PackProduct, Product, PackType, Category, sequelize, User, Cart, Notification } = require('../models');
 
 /**
  * GET /api/orders
@@ -215,6 +215,22 @@ router.post('/', async (req, res) => {
     }
 
     await transaction.commit();
+
+    // Create notification for admin about new order
+    try {
+      await Notification.create({
+        type: 'order',
+        title: 'New Order Placed',
+        message: `New order #${newOrder.id} has been placed by user ${userId} for ₹${totalAmount}`,
+        referenceId: newOrder.id,
+        referenceType: 'order',
+        actionRequired: true,
+        priority: 'high'
+      });
+    } catch (notifError) {
+      console.error('Error creating order notification:', notifError);
+      // Don't fail the order if notification fails
+    }
 
     // Clear user's cart after successful order
     console.log(`Attempting to clear cart for userId: ${userId}, orderId: ${newOrder.id}`);

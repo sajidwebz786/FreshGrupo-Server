@@ -270,6 +270,19 @@ const upload = multer({ storage: storage });
       }
     });
 
+    // Get pending delete requests count
+    app.get('/api/delete-requests/pending-count', async (req, res) => {
+      try {
+        const { DeleteRequest } = global.models;
+        const count = await DeleteRequest.count({
+          where: { status: 'pending' }
+        });
+        res.json({ count });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
     // ==============================
     // Health & Base
     // ==============================
@@ -485,6 +498,42 @@ const upload = multer({ storage: storage });
       }
     });
 
+    // Get deactivated products
+    app.get('/api/products/deactivated', async (req, res) => {
+      try {
+        const { Product, Category, UnitType } = global.models;
+        const products = await Product.findAll({
+          where: { isAvailable: false },
+          include: [
+            { model: Category },
+            { model: UnitType }
+          ],
+          order: [['updatedAt', 'DESC']]
+        });
+        res.json(products);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // Activate a product
+    app.patch('/api/products/:id/activate', async (req, res) => {
+      try {
+        const { Product } = global.models;
+        const [updated] = await Product.update(
+          { isAvailable: true },
+          { where: { id: req.params.id } }
+        );
+        if (updated) {
+          res.json({ message: 'Product activated successfully' });
+        } else {
+          res.status(404).json({ error: 'Product not found' });
+        }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
     // ==============================
     // Pack Routes (IMPORTANT)
     // ==============================
@@ -578,6 +627,47 @@ const upload = multer({ storage: storage });
         );
         if (updated) {
           res.json({ message: 'Pack marked as inactive' });
+        } else {
+          res.status(404).json({ error: 'Pack not found' });
+        }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // Get deactivated packs
+    app.get('/api/packs/deactivated', async (req, res) => {
+      try {
+        const { Pack, Category, PackType, Product, UnitType } = global.models;
+        const packs = await Pack.findAll({
+          where: { isActive: false },
+          include: [
+            { model: Category },
+            { model: PackType },
+            {
+              model: Product,
+              through: { attributes: ['quantity', 'unitPrice'] },
+              include: [UnitType],
+            },
+          ],
+          order: [['updatedAt', 'DESC']]
+        });
+        res.json(packs);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // Activate a pack
+    app.patch('/api/packs/:id/activate', async (req, res) => {
+      try {
+        const { Pack } = global.models;
+        const [updated] = await Pack.update(
+          { isActive: true },
+          { where: { id: req.params.id } }
+        );
+        if (updated) {
+          res.json({ message: 'Pack activated successfully' });
         } else {
           res.status(404).json({ error: 'Pack not found' });
         }
