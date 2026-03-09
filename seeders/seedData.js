@@ -255,50 +255,206 @@ async function seedDatabase(force = false) {
       }
     ]);
 
-    // Create pack types
+    // Create pack types with category association
     const packTypes = await PackType.bulkCreate([
+      // Fruits Pack (Category ID: 1)
       {
         name: 'Small Fruit Pack',
+        categoryId: 1,
         duration: 'small',
         basePrice: 350.00,
         sizeLabel: 'Small',
         persons: '1-2 Persons',
         days: '3-4 Days',
-        fruitCount: '4-5 Seasonal Fruits',
+        itemCount: '4-5 Seasonal Fruits',
         weight: 'Approx 3-4 Kg',
         targetAudience: 'Basic Family Consumption'
       },
       {
         name: 'Medium Fruit Pack',
+        categoryId: 1,
         duration: 'medium',
         basePrice: 650.00,
         sizeLabel: 'Medium',
         persons: '3-4 Persons',
         days: '1 Week',
-        fruitCount: '6-8 Fruit Varieties',
+        itemCount: '6-8 Fruit Varieties',
         weight: 'Approx 6-8 Kg',
         targetAudience: 'Kids + Working Family'
       },
       {
         name: 'Large Fruit Pack',
+        categoryId: 1,
         duration: 'large',
         basePrice: 1200.00,
         sizeLabel: 'Large',
         persons: 'Joint Family / Health Lovers',
         days: '1 Week+',
-        fruitCount: '8-12 Premium + Seasonal Fruits',
+        itemCount: '8-12 Premium + Seasonal Fruits',
         weight: '10-15 Kg',
         targetAudience: 'Health Enthusiasts',
         includesExotic: true
       },
+      // Vegetables Pack (Category ID: 2)
+      {
+        name: 'Small Vegetable Pack',
+        categoryId: 2,
+        duration: 'small',
+        basePrice: 300.00,
+        sizeLabel: 'Small',
+        persons: '1-2 Persons',
+        days: '3-4 Days',
+        itemCount: '4-5 Seasonal Vegetables',
+        weight: 'Approx 3-4 Kg',
+        targetAudience: 'Basic Family Consumption'
+      },
+      {
+        name: 'Medium Vegetable Pack',
+        categoryId: 2,
+        duration: 'medium',
+        basePrice: 550.00,
+        sizeLabel: 'Medium',
+        persons: '3-4 Persons',
+        days: '1 Week',
+        itemCount: '6-8 Vegetable Varieties',
+        weight: 'Approx 6-8 Kg',
+        targetAudience: 'Kids + Working Family'
+      },
+      {
+        name: 'Large Vegetable Pack',
+        categoryId: 2,
+        duration: 'large',
+        basePrice: 1000.00,
+        sizeLabel: 'Large',
+        persons: 'Joint Family / Health Lovers',
+        days: '1 Week+',
+        itemCount: '8-12 Premium + Seasonal Vegetables',
+        weight: '10-15 Kg',
+        targetAudience: 'Health Enthusiasts',
+        includesExotic: true
+      },
+      // Grocery Pack (Category ID: 3)
+      {
+        name: 'Small Grocery Pack',
+        categoryId: 3,
+        duration: 'small',
+        basePrice: 400.00,
+        sizeLabel: 'Small',
+        persons: '1-2 Persons',
+        days: '3-4 Days',
+        itemCount: '8-10 Essential Items',
+        weight: 'Approx 3-4 Kg',
+        targetAudience: 'Basic Family Consumption'
+      },
+      {
+        name: 'Medium Grocery Pack',
+        categoryId: 3,
+        duration: 'medium',
+        basePrice: 750.00,
+        sizeLabel: 'Medium',
+        persons: '3-4 Persons',
+        days: '1 Week',
+        itemCount: '15-20 Essential Items',
+        weight: 'Approx 6-8 Kg',
+        targetAudience: 'Kids + Working Family'
+      },
+      {
+        name: 'Large Grocery Pack',
+        categoryId: 3,
+        duration: 'large',
+        basePrice: 1400.00,
+        sizeLabel: 'Large',
+        persons: 'Joint Family',
+        days: '1 Week+',
+        itemCount: '25-30 Premium Items',
+        weight: '10-15 Kg',
+        targetAudience: 'Large Families'
+      },
+      // Dry Fruit Pack (Category ID: 8)
+      {
+        name: 'Small Dry Fruit Pack',
+        categoryId: 8,
+        duration: 'small',
+        basePrice: 500.00,
+        sizeLabel: 'Small',
+        persons: '1-2 Persons',
+        days: '3-4 Days',
+        itemCount: '4-5 Premium Dry Fruits',
+        weight: 'Approx 0.5-1 Kg',
+        targetAudience: 'Basic Family Consumption'
+      },
+      {
+        name: 'Medium Dry Fruit Pack',
+        categoryId: 8,
+        duration: 'medium',
+        basePrice: 900.00,
+        sizeLabel: 'Medium',
+        persons: '3-4 Persons',
+        days: '1 Week',
+        itemCount: '6-8 Premium Dry Fruits',
+        weight: 'Approx 1-2 Kg',
+        targetAudience: 'Kids + Working Family'
+      },
+      {
+        name: 'Large Dry Fruit Pack',
+        categoryId: 8,
+        duration: 'large',
+        basePrice: 1800.00,
+        sizeLabel: 'Large',
+        persons: 'Joint Family / Health Lovers',
+        days: '1 Week+',
+        itemCount: '10-15 Premium Dry Fruits',
+        weight: 'Approx 2-3 Kg',
+        targetAudience: 'Health Enthusiasts',
+        includesExotic: true
+      },
+      // Millets Pack (Category ID: 5)
+      {
+        name: 'Small Millets Pack',
+        categoryId: 5,
+        duration: 'small',
+        basePrice: 350.00,
+        sizeLabel: 'Small',
+        persons: '1-2 Persons',
+        days: '3-4 Days',
+        itemCount: '3-4 Millet Varieties',
+        weight: 'Approx 2-3 Kg',
+        targetAudience: 'Basic Family Consumption'
+      },
+      {
+        name: 'Medium Millets Pack',
+        categoryId: 5,
+        duration: 'medium',
+        basePrice: 650.00,
+        sizeLabel: 'Medium',
+        persons: '3-4 Persons',
+        days: '1 Week',
+        itemCount: '5-6 Millet Varieties',
+        weight: 'Approx 4-5 Kg',
+        targetAudience: 'Kids + Working Family'
+      },
+      {
+        name: 'Large Millets Pack',
+        categoryId: 5,
+        duration: 'large',
+        basePrice: 1100.00,
+        sizeLabel: 'Large',
+        persons: 'Joint Family / Health Lovers',
+        days: '1 Week+',
+        itemCount: '8-10 Premium Millets',
+        weight: 'Approx 8-10 Kg',
+        targetAudience: 'Health Enthusiasts'
+      },
+      // Custom Pack (for any category)
       {
         name: 'Custom Pack',
+        categoryId: null,
         duration: 'custom',
         basePrice: 0,
         sizeLabel: 'Custom',
         persons: 'Any',
         days: 'Custom',
-        fruitCount: 'Your Choice',
+        itemCount: 'Your Choice',
         weight: 'Custom',
         targetAudience: 'Personalized'
       }

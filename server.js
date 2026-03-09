@@ -679,9 +679,19 @@ const upload = multer({ storage: storage });
     // ==============================
     // Pack Type Routes
     // ==============================
-    app.get('/api/pack-types', async (_, res) => {
+    app.get('/api/pack-types', async (req, res) => {
       try {
-        res.json(await PackType.findAll());
+        const { categoryId } = req.query;
+        const where = {};
+        if (categoryId) {
+          where.categoryId = categoryId;
+        }
+        const packTypes = await PackType.findAll({
+          where,
+          include: [{ model: Category, as: 'Category', attributes: ['id', 'name'] }],
+          order: [['id', 'ASC']]
+        });
+        res.json(packTypes);
       } catch (e) {
         res.status(500).json({ error: e.message });
       }

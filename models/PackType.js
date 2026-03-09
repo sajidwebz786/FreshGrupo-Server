@@ -5,6 +5,10 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class PackType extends Model {
     static associate(models) {
+      PackType.belongsTo(models.Category, {
+        foreignKey: 'categoryId',
+        as: 'Category'
+      });
       PackType.hasMany(models.Pack, {
         foreignKey: 'packTypeId'
       });
@@ -17,6 +21,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
+      },
+      categoryId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Category this pack type belongs to (null = global/legacy)'
       },
       name: {
         type: DataTypes.STRING,
@@ -41,10 +50,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         comment: 'Duration in days (e.g., 3-4 Days, 1 Week)'
       },
-      fruitCount: {
+      itemCount: {
         type: DataTypes.STRING,
         allowNull: true,
-        comment: 'Number of fruits (e.g., 4-5 Seasonal Fruits)'
+        comment: 'Number of items (e.g., 4-5 Seasonal Items)'
       },
       weight: {
         type: DataTypes.STRING,
@@ -59,7 +68,7 @@ module.exports = (sequelize, DataTypes) => {
       includesExotic: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
-        comment: 'Whether pack includes exotic fruits'
+        comment: 'Whether pack includes exotic items'
       },
       basePrice: {
         type: DataTypes.DECIMAL(10, 2),

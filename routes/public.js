@@ -21,9 +21,15 @@ router.get('/categories', async (req, res) => {
 // GET /api/public/pack-types
 router.get('/pack-types', async (req, res) => {
   try {
+    const { categoryId } = req.query;
+    const where = { isActive: true };
+    if (categoryId) {
+      where.categoryId = categoryId;
+    }
     const packTypes = await PackType.findAll({
-      where: { isActive: true },
-      attributes: ['id', 'name', 'duration', 'basePrice'],
+      where,
+      include: [{ model: Category, as: 'Category', attributes: ['id', 'name'] }],
+      attributes: ['id', 'name', 'duration', 'basePrice', 'categoryId', 'sizeLabel', 'persons', 'days', 'itemCount', 'weight', 'targetAudience', 'includesExotic'],
       order: [['name', 'ASC']]
     });
 
