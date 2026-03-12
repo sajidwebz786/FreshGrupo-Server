@@ -49,7 +49,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       packTypeId: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: true // Pack name itself is the pack type now
       },
       basePrice: {
         type: DataTypes.DECIMAL(10, 2),

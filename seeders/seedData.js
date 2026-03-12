@@ -445,6 +445,228 @@ async function seedDatabase(force = false) {
         weight: 'Approx 8-10 Kg',
         targetAudience: 'Health Enthusiasts'
       },
+      // Juices Pack (Category ID: 4)
+      {
+        name: 'Small Juices Pack',
+        categoryId: 4,
+        duration: 'small',
+        basePrice: 300.00,
+        sizeLabel: 'Small',
+        persons: '1-2 Persons',
+        days: '3-4 Days',
+        itemCount: '4-5 Juice Varieties',
+        weight: 'Approx 2-3 Liters',
+        targetAudience: 'Basic Family Consumption'
+      },
+      {
+        name: 'Medium Juices Pack',
+        categoryId: 4,
+        duration: 'medium',
+        basePrice: 550.00,
+        sizeLabel: 'Medium',
+        persons: '3-4 Persons',
+        days: '1 Week',
+        itemCount: '6-8 Juice Varieties',
+        weight: 'Approx 4-5 Liters',
+        targetAudience: 'Kids + Working Family'
+      },
+      {
+        name: 'Large Juices Pack',
+        categoryId: 4,
+        duration: 'large',
+        basePrice: 1000.00,
+        sizeLabel: 'Large',
+        persons: 'Joint Family / Health Lovers',
+        days: '1 Week+',
+        itemCount: '10-12 Premium Juices',
+        weight: 'Approx 8-10 Liters',
+        targetAudience: 'Health Enthusiasts'
+      },
+      // Raw Powder Pack (Category ID: 6)
+      {
+        name: 'Small Raw Powder Pack',
+        categoryId: 6,
+        duration: 'small',
+        basePrice: 400.00,
+        sizeLabel: 'Small',
+        persons: '1-2 Persons',
+        days: '3-4 Days',
+        itemCount: '4-5 Powder Varieties',
+        weight: 'Approx 0.5-1 Kg',
+        targetAudience: 'Basic Family Consumption'
+      },
+      {
+        name: 'Medium Raw Powder Pack',
+        categoryId: 6,
+        duration: 'medium',
+        basePrice: 750.00,
+        sizeLabel: 'Medium',
+        persons: '3-4 Persons',
+        days: '1 Week',
+        itemCount: '6-8 Powder Varieties',
+        weight: 'Approx 1-2 Kg',
+        targetAudience: 'Kids + Working Family'
+      },
+      {
+        name: 'Large Raw Powder Pack',
+        categoryId: 6,
+        duration: 'large',
+        basePrice: 1400.00,
+        sizeLabel: 'Large',
+        persons: 'Joint Family / Health Lovers',
+        days: '1 Week+',
+        itemCount: '10-15 Premium Powders',
+        weight: 'Approx 2-3 Kg',
+        targetAudience: 'Health Enthusiasts'
+      },
+      // Nutrition Pack (Category ID: 7)
+      {
+        name: 'Small Nutrition Pack',
+        categoryId: 7,
+        duration: 'small',
+        basePrice: 500.00,
+        sizeLabel: 'Small',
+        persons: '1-2 Persons',
+        days: '3-4 Days',
+        itemCount: '4-5 Nutrition Items',
+        weight: 'Approx 0.5-1 Kg',
+        targetAudience: 'Basic Family Consumption'
+      },
+      {
+        name: 'Medium Nutrition Pack',
+        categoryId: 7,
+        duration: 'medium',
+        basePrice: 900.00,
+        sizeLabel: 'Medium',
+        persons: '3-4 Persons',
+        days: '1 Week',
+        itemCount: '6-8 Nutrition Items',
+        weight: 'Approx 1-2 Kg',
+        targetAudience: 'Kids + Working Family'
+      },
+      {
+        name: 'Large Nutrition Pack',
+        categoryId: 7,
+        duration: 'large',
+        basePrice: 1600.00,
+        sizeLabel: 'Large',
+        persons: 'Joint Family / Health Lovers',
+        days: '1 Week+',
+        itemCount: '10-15 Premium Items',
+        weight: 'Approx 2-3 Kg',
+        targetAudience: 'Health Enthusiasts'
+      },
+      // Festival Pack (Category ID: 9)
+      {
+        name: 'Small Festival Pack',
+        categoryId: 9,
+        duration: 'small',
+        basePrice: 800.00,
+        sizeLabel: 'Small',
+        persons: '1-2 Persons',
+        days: 'Festival Special',
+        itemCount: '8-10 Festival Items',
+        weight: 'Approx 2-3 Kg',
+        targetAudience: 'Basic Family Consumption'
+      },
+      {
+        name: 'Medium Festival Pack',
+        categoryId: 9,
+        duration: 'medium',
+        basePrice: 1500.00,
+        sizeLabel: 'Medium',
+        persons: '3-4 Persons',
+        days: 'Festival Special',
+        itemCount: '15-20 Festival Items',
+        weight: 'Approx 4-5 Kg',
+        targetAudience: 'Kids + Working Family'
+      },
+      {
+        name: 'Large Festival Pack',
+        categoryId: 9,
+        duration: 'large',
+        basePrice: 2500.00,
+        sizeLabel: 'Large',
+        persons: 'Joint Family',
+        days: 'Festival Special',
+        itemCount: '25-30 Premium Items',
+        weight: 'Approx 8-10 Kg',
+        targetAudience: 'Large Families'
+      },
+      // Flower Pack (Category ID: 10)
+      {
+        name: 'Small Flower Pack',
+        categoryId: 10,
+        duration: 'small',
+        basePrice: 250.00,
+        sizeLabel: 'Small',
+        persons: '1-2 Persons',
+        days: 'Weekly',
+        itemCount: '2-3 Bouquets',
+        weight: 'Approx 1-2 Kg',
+        targetAudience: 'Basic Family Consumption'
+      },
+      {
+        name: 'Medium Flower Pack',
+        categoryId: 10,
+        duration: 'medium',
+        basePrice: 450.00,
+        sizeLabel: 'Medium',
+        persons: '3-4 Persons',
+        days: 'Weekly',
+        itemCount: '4-5 Bouquets',
+        weight: 'Approx 2-3 Kg',
+        targetAudience: 'Kids + Working Family'
+      },
+      {
+        name: 'Large Flower Pack',
+        categoryId: 10,
+        duration: 'large',
+        basePrice: 800.00,
+        sizeLabel: 'Large',
+        persons: 'Joint Family / Florists',
+        days: 'Weekly',
+        itemCount: '6-8 Premium Bouquets',
+        weight: 'Approx 4-5 Kg',
+        targetAudience: 'Health Enthusiasts'
+      },
+      // Sprouts Pack (Category ID: 11)
+      {
+        name: 'Small Sprouts Pack',
+        categoryId: 11,
+        duration: 'small',
+        basePrice: 200.00,
+        sizeLabel: 'Small',
+        persons: '1-2 Persons',
+        days: '3-4 Days',
+        itemCount: '3-4 Sprout Varieties',
+        weight: 'Approx 0.5-1 Kg',
+        targetAudience: 'Basic Family Consumption'
+      },
+      {
+        name: 'Medium Sprouts Pack',
+        categoryId: 11,
+        duration: 'medium',
+        basePrice: 350.00,
+        sizeLabel: 'Medium',
+        persons: '3-4 Persons',
+        days: '1 Week',
+        itemCount: '5-6 Sprout Varieties',
+        weight: 'Approx 1-2 Kg',
+        targetAudience: 'Kids + Working Family'
+      },
+      {
+        name: 'Large Sprouts Pack',
+        categoryId: 11,
+        duration: 'large',
+        basePrice: 600.00,
+        sizeLabel: 'Large',
+        persons: 'Joint Family / Health Lovers',
+        days: '1 Week+',
+        itemCount: '8-10 Premium Sprouts',
+        weight: 'Approx 2-3 Kg',
+        targetAudience: 'Health Enthusiasts'
+      },
       // Custom Pack (for any category)
       {
         name: 'Custom Pack',
