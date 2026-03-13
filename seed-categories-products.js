@@ -209,8 +209,15 @@ async function resetAndSeedCategoriesProducts() {
     console.log('🔌 Connection closed.');
   } catch (error) {
     console.error('❌ Error during reset:', error);
-    process.exit(1);
+    throw error;
   }
 }
 
-resetAndSeedCategoriesProducts();
+module.exports = {
+  resetAndSeedCategoriesProducts,
+};
+
+// If run directly, execute immediately
+if (require.main === module) {
+  resetAndSeedCategoriesProducts().catch(() => process.exit(1));
+}

@@ -32,8 +32,15 @@ async function resetPacks() {
     console.log('🔌 Connection closed.');
   } catch (error) {
     console.error('❌ Error resetting packs:', error);
-    process.exit(1);
+    throw error;
   }
 }
 
-resetPacks();
+module.exports = {
+  resetPacks,
+};
+
+// If run directly, execute the reset
+if (require.main === module) {
+  resetPacks().catch(() => process.exit(1));
+}
