@@ -31,32 +31,67 @@ async function flushAndSeed() {
     // ==============================
     console.log('\n🗑️  Flushing all data except users...\n');
 
-    // Order matters due to foreign key constraints
-    try { await db.DeleteRequest.destroy({ where: {}, truncate: true }); console.log('✓ Deleted DeleteRequests'); } catch (e) { console.log('  (DeleteRequests: table not found or empty)'); }
-    try { await db.WalletTransaction.destroy({ where: {}, truncate: true }); console.log('✓ Deleted WalletTransactions'); } catch (e) { console.log('  (WalletTransactions: table not found or empty)'); }
-    try { await db.Notification.destroy({ where: {}, truncate: true }); console.log('✓ Deleted Notifications'); } catch (e) { console.log('  (Notifications: table not found or empty)'); }
-    try { await db.OrderPackContent.destroy({ where: {}, truncate: true }); console.log('✓ Deleted OrderPackContents'); } catch (e) { console.log('  (OrderPackContents: table not found or empty)'); }
-    try { await db.Order.destroy({ where: {}, truncate: true }); console.log('✓ Deleted Orders'); } catch (e) { console.log('  (Orders: table not found or empty)'); }
-    try { await db.CartItem.destroy({ where: {}, truncate: true }); console.log('✓ Deleted CartItems'); } catch (e) { console.log('  (CartItems: table not found or empty)'); }
-    try { await db.Cart.destroy({ where: {}, truncate: true }); console.log('✓ Deleted Carts'); } catch (e) { console.log('  (Carts: table not found or empty)'); }
-    try { await db.Address.destroy({ where: {}, truncate: true }); console.log('✓ Deleted Addresses'); } catch (e) { console.log('  (Addresses: table not found or empty)'); }
-    try { await db.Payment.destroy({ where: {}, truncate: true }); console.log('✓ Deleted Payments'); } catch (e) { console.log('  (Payments: table not found or empty)'); }
-    try { await db.CreditPackage.destroy({ where: {}, truncate: true }); console.log('✓ Deleted CreditPackages'); } catch (e) { console.log('  (CreditPackages: table not found or empty)'); }
-    try { await db.RewardConfig.destroy({ where: {}, truncate: true }); console.log('✓ Deleted RewardConfigs'); } catch (e) { console.log('  (RewardConfigs: table not found or empty)'); }
-    try { await db.PackProduct.destroy({ where: {}, truncate: true }); console.log('✓ Deleted PackProducts'); } catch (e) { console.log('  (PackProducts: table not found or empty)'); }
-    try { await db.Pack.destroy({ where: {}, truncate: true }); console.log('✓ Deleted Packs'); } catch (e) { console.log('  (Packs: table not found or empty)'); }
-    try { await db.PackType.destroy({ where: {}, truncate: true }); console.log('✓ Deleted PackTypes'); } catch (e) { console.log('  (PackTypes: table not found or empty)'); }
-    try { await db.Product.destroy({ where: {}, truncate: true }); console.log('✓ Deleted Products'); } catch (e) { console.log('  (Products: table not found or empty)'); }
-    try { await db.Category.destroy({ where: {}, truncate: true }); console.log('✓ Deleted Categories'); } catch (e) { console.log('  (Categories: table not found or empty)'); }
-    try { await db.UnitType.destroy({ where: {}, truncate: true }); console.log('✓ Deleted UnitTypes'); } catch (e) { console.log('  (UnitTypes: table not found or empty)'); }
-    try { await db.Wallet.destroy({ where: {}, truncate: true }); console.log('✓ Deleted Wallets'); } catch (e) { console.log('  (Wallets: table not found or empty)'); }
+    // Order matters due to foreign key constraints.
+    // Use TRUNCATE CASCADE to ensure all related records are removed and sequences reset.
+    const tablesToTruncate = [
+      'DeleteRequests',
+      'WalletTransactions',
+      'Notifications',
+      'OrderPackContents',
+      'Orders',
+      'CartItems',
+      'Carts',
+      'Addresses',
+      'Payments',
+      'CreditPackages',
+      'RewardConfigs',
+      'PackProducts',
+      'Packs',
+      'PackTypes',
+      'Products',
+      'Categories',
+      'UnitTypes',
+      'Wallets'
+    ];
 
-    // Reset auto-increment for all tables
+    for (const tableName of tablesToTruncate) {
+      try {
+        await db.sequelize.query(`TRUNCATE TABLE "${tableName}" RESTART IDENTITY CASCADE;`);
+        console.log(`✓ Truncated ${tableName}`);
+      } catch (e) {
+        console.log(`  (${tableName}: table not found or could not truncate)`);
+      }
+    }
+
+    // Reset auto-increment for all tables we truncates (keep Users intact)
     console.log('\n🔄 Resetting auto-increment counters...');
-    for (const modelName of ['Category', 'Product', 'Pack', 'PackType', 'PackProduct', 'UnitType']) {
+    const sequencesToReset = [
+      { modelName: 'DeleteRequest', tableName: 'DeleteRequests' },
+      { modelName: 'WalletTransaction', tableName: 'WalletTransactions' },
+      { modelName: 'Notification', tableName: 'Notifications' },
+      { modelName: 'OrderPackContent', tableName: 'OrderPackContents' },
+      { modelName: 'Order', tableName: 'Orders' },
+      { modelName: 'CartItem', tableName: 'CartItems' },
+      { modelName: 'Cart', tableName: 'Carts' },
+      { modelName: 'Address', tableName: 'Addresses' },
+      { modelName: 'Payment', tableName: 'Payments' },
+      { modelName: 'CreditPackage', tableName: 'CreditPackages' },
+      { modelName: 'RewardConfig', tableName: 'RewardConfigs' },
+      { modelName: 'PackProduct', tableName: 'PackProducts' },
+      { modelName: 'Pack', tableName: 'Packs' },
+      { modelName: 'PackType', tableName: 'PackTypes' },
+      { modelName: 'Product', tableName: 'Products' },
+      { modelName: 'Category', tableName: 'Categories' },
+      { modelName: 'UnitType', tableName: 'UnitTypes' },
+      { modelName: 'Wallet', tableName: 'Wallets' }
+    ];
+
+    for (const { modelName, tableName } of sequencesToReset) {
       if (db[modelName]) {
-        await db.sequelize.query(`ALTER SEQUENCE "${modelName}s_id_seq" RESTART WITH 1;`).catch(() => {});
-        console.log(`  ✓ Reset ${modelName}s`);
+        await db.sequelize
+          .query(`ALTER SEQUENCE "${tableName}_id_seq" RESTART WITH 1;`)
+          .catch(() => {});
+        console.log(`  ✓ Reset ${tableName}`);
       }
     }
 
