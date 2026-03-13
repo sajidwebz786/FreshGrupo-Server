@@ -117,6 +117,7 @@ const upload = multer({ storage: storage });
     app.use('/api/notifications', require('./routes/notifications'));
     app.use('/api/reward-config', require('./routes/rewardConfig'));
     app.use('/api/pack-types', require('./routes/packTypes'));
+    app.use('/api/unit-types', require('./routes/unitTypes'));
     
     // ==============================
     // Delete Request Routes (for Staff approval workflow)
