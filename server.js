@@ -788,6 +788,7 @@ const upload = multer({ storage: storage });
           productId: parseInt(p.productId),
           quantity: parseInt(p.quantity),
           unitPrice: parseFloat(p.unitPrice),
+          unitTypeId: p.unitTypeId ? parseInt(p.unitTypeId) : null,
         }));
 
         console.log('Mapped pack products:', packProducts);
@@ -804,7 +805,7 @@ const upload = multer({ storage: storage });
       try {
         const packProducts = await PackProduct.findAll({
           where: { packId: req.params.packId },
-          include: [Product],
+          include: [Product, { model: db.UnitType, as: 'UnitType' }],
         });
         res.json(packProducts);
       } catch (e) {

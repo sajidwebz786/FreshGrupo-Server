@@ -12,6 +12,11 @@ module.exports = (sequelize, DataTypes) => {
       PackProduct.belongsTo(models.Product, {
         foreignKey: 'productId'
       });
+
+      PackProduct.belongsTo(models.UnitType, {
+        foreignKey: 'unitTypeId',
+        as: 'UnitType'
+      });
     }
   }
 
@@ -38,6 +43,11 @@ module.exports = (sequelize, DataTypes) => {
       unitPrice: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false
+      },
+      unitTypeId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Unit type for this pack product (e.g., kg, g, piece)'
       }
     },
     {
