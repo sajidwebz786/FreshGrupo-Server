@@ -2,6 +2,20 @@ const express = require('express');
 const router = express.Router();
 const { Category, PackType, Pack, Product } = require('../models');
 
+// Image base URL - configure based on environment
+const IMAGE_BASE_URL = process.env.IMAGE_BASE_URL || 'https://freshgrupo-server.onrender.com/images';
+
+// Helper function to construct full image URL
+const getFullImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  // If it's already a full URL (Cloudinary or external), return as-is
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  // Otherwise, prepend the image base URL
+  return `${IMAGE_BASE_URL}/${imagePath}`;
+};
+
 // GET /api/public/categories
 router.get('/categories', async (req, res) => {
   try {
@@ -11,7 +25,13 @@ router.get('/categories', async (req, res) => {
       order: [['id', 'ASC']]
     });
 
-    res.status(200).json(categories);
+    // Transform to include full image URLs
+    const categoriesWithImageUrls = categories.map(cat => ({
+      ...cat.toJSON(),
+      image: getFullImageUrl(cat.image)
+    }));
+
+    res.status(200).json(categoriesWithImageUrls);
   } catch (error) {
     console.error('Error fetching categories:', error);
     res.status(500).json({ error: 'Failed to fetch categories' });
@@ -63,7 +83,20 @@ router.get('/categories/:categoryId/packs', async (req, res) => {
       order: [['name', 'ASC']]
     });
 
-    res.status(200).json(packs);
+    // Transform to include full image URLs for products
+    const packsWithImageUrls = packs.map(pack => {
+      const packData = pack.toJSON();
+      // Transform products to have full image URLs
+      if (packData.Products && Array.isArray(packData.Products)) {
+        packData.Products = packData.Products.map(product => ({
+          ...product,
+          image: getFullImageUrl(product.image)
+        }));
+      }
+      return packData;
+    });
+
+    res.status(200).json(packsWithImageUrls);
   } catch (error) {
     console.error('Error fetching packs:', error);
     res.status(500).json({ error: 'Failed to fetch packs' });
@@ -81,10 +114,43 @@ router.get('/categories/:categoryId/products', async (req, res) => {
       order: [['name', 'ASC']]
     });
 
-    res.status(200).json(products);
+    // Transform to include full image URLs
+    const productsWithImageUrls = products.map(product => ({
+      ...product.toJSON(),
+      image: getFullImageUrl(product.image)
+    }));
+
+    res.status(200).json(productsWithImageUrls);
   } catch (error) {
     console.error('Error fetching products:', error);
     res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
+// GET /api/public/offers - Get banner/offers for carousel (dynamic from database)
+router.get('/offers', async (req, res) => {
+  try {
+    // Fetch active categories to use as offers/banners
+    const categories = await Category.findAll({
+      where: { isActive: true },
+      attributes: ['id', 'name', 'image', 'description'],
+      order: [['id', 'ASC']],
+      limit: 5
+    });
+
+    // Transform to offer format with full image URLs
+    const offers = categories.map((cat, index) => ({
+      id: cat.id,
+      category: cat.name,
+      image: getFullImageUrl(cat.image),
+      discount: ['20% OFF', '15% OFF', '25% OFF', '30% OFF', '10% OFF'][index % 5],
+      title: `${cat.name} - Fresh Delivery`
+    }));
+
+    res.status(200).json(offers);
+  } catch (error) {
+    console.error('Error fetching offers:', error);
+    res.status(500).json({ error: 'Failed to fetch offers' });
   }
 });
 
