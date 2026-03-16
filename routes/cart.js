@@ -61,7 +61,8 @@ router.post('/', async (req, res) => {
       if (!pack) {
         return res.status(404).json({ error: 'Pack not found' });
       }
-      unitPriceValue = pack.finalPrice;
+      // Use sellingPrice if available, otherwise fallback to finalPrice
+      unitPriceValue = pack.sellingPrice || pack.finalPrice;
     }
 
     totalPriceValue = unitPriceValue * quantity;

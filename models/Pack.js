@@ -64,6 +64,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false
       },
+      sellingPrice: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        comment: 'The selling price shown to customers (if different from finalPrice)'
+      },
       isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true

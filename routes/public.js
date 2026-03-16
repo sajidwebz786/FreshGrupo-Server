@@ -71,10 +71,10 @@ router.get('/categories/:categoryId/packs', async (req, res) => {
 
     const packs = await Pack.findAll({
       where,
-      attributes: ['id', 'name', 'description', 'content', 'basePrice', 'finalPrice', 'validFrom', 'validUntil'],
+      attributes: ['id', 'name', 'description', 'content', 'basePrice', 'finalPrice', 'sellingPrice', 'validFrom', 'validUntil'],
       include: [{
         model: PackType,
-        attributes: ['id', 'name', 'duration', 'basePrice']
+        attributes: ['id', 'name', 'duration', 'basePrice', 'color']
       }, {
         model: Product,
         through: { attributes: ['unitPrice', 'quantity'] }, // Include PackProduct junction table data
@@ -109,7 +109,7 @@ router.get('/packs/:packId', async (req, res) => {
     const { packId } = req.params;
     
     const pack = await Pack.findByPk(packId, {
-      attributes: ['id', 'name', 'description', 'content', 'basePrice', 'finalPrice', 'validFrom', 'validUntil', 'categoryId', 'packTypeId'],
+      attributes: ['id', 'name', 'description', 'content', 'basePrice', 'finalPrice', 'sellingPrice', 'validFrom', 'validUntil', 'categoryId', 'packTypeId'],
       include: [
         {
           model: PackType,
