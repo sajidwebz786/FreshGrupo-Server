@@ -618,7 +618,7 @@ const upload = multer({ storage: storage });
               },
             ],
           });
-          res.json({ message: 'Pack updated successfully', pack });
+          res.json(pack);
         } else {
           res.status(404).json({ error: 'Pack not found' });
         }
