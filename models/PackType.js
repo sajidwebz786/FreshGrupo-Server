@@ -77,6 +77,11 @@ module.exports = (sequelize, DataTypes) => {
       isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
+      },
+      color: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Background color for pack type card (e.g., #66BB6A)'
       }
     },
     {

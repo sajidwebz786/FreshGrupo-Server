@@ -6,7 +6,7 @@ const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
-const { Order, Payment, OrderPackContent, Pack, PackProduct, Product, PackType, Category, sequelize, User, Cart, Notification } = require('../models');
+const { Order, Payment, OrderPackContent, Pack, PackProduct, Product, PackType, Category, sequelize, User, Cart, Notification, Wallet, WalletTransaction } = require('../models');
 
 /**
  * GET /api/orders
@@ -154,6 +154,23 @@ router.post('/', async (req, res) => {
       deliveryDate
     } = req.body;
 
+    // Check wallet balance if payment method is wallet
+    if (paymentMethod === 'wallet') {
+      const wallet = await Wallet.findOne({ where: { userId } });
+      
+      if (!wallet) {
+        return res.status(400).json({ error: 'Wallet not found for this user' });
+      }
+      
+      if (parseFloat(wallet.balance) < parseFloat(totalAmount)) {
+        return res.status(400).json({ 
+          error: 'Insufficient wallet balance', 
+          currentBalance: wallet.balance,
+          requiredAmount: totalAmount 
+        });
+      }
+    }
+
     const newOrder = await Order.create(
       {
         userId,
@@ -216,6 +233,47 @@ router.post('/', async (req, res) => {
 
     await transaction.commit();
 
+    // Handle wallet payment - deduct credits from wallet
+    let walletBalance = null;
+    if (paymentMethod === 'wallet') {
+      try {
+        const wallet = await Wallet.findOne({ where: { userId } });
+        
+        if (!wallet) {
+          console.error('Wallet not found for user:', userId);
+        } else if (parseFloat(wallet.balance) < parseFloat(totalAmount)) {
+          console.error('Insufficient wallet balance for user:', userId, 'Balance:', wallet.balance, 'Required:', totalAmount);
+        } else {
+          // Deduct from wallet
+          const newBalance = parseFloat(wallet.balance) - parseFloat(totalAmount);
+          
+          await wallet.update({
+            balance: newBalance,
+            totalCreditsSpent: parseFloat(wallet.totalCreditsSpent || 0) + parseFloat(totalAmount)
+          });
+
+          // Create wallet transaction record
+          await WalletTransaction.create({
+            walletId: wallet.id,
+            userId,
+            type: 'credit_spent',
+            amount: -parseFloat(totalAmount),
+            balanceBefore: wallet.balance + parseFloat(totalAmount),
+            balanceAfter: newBalance,
+            orderId: newOrder.id,
+            description: `Spent ${totalAmount} credits for order #${newOrder.id}`,
+            status: 'completed'
+          });
+
+          walletBalance = newBalance;
+          console.log(`✅ Wallet deducted: ${totalAmount} credits for order #${newOrder.id}. New balance: ${newBalance}`);
+        }
+      } catch (walletError) {
+        console.error('Error processing wallet payment:', walletError);
+        // Don't fail the order, but log the error
+      }
+    }
+
     // Create notification for admin about new order
     try {
       await Notification.create({
@@ -251,7 +309,8 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({
       ...newOrder.toJSON(),
-      razorpayOrderId
+      razorpayOrderId,
+      walletBalance
     });
 
   } catch (error) {

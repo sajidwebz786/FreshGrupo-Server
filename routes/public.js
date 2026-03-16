@@ -49,7 +49,7 @@ router.get('/pack-types', async (req, res) => {
     const packTypes = await PackType.findAll({
       where,
       include: [{ model: Category, as: 'Category', attributes: ['id', 'name'] }],
-      attributes: ['id', 'name', 'duration', 'basePrice', 'categoryId', 'sizeLabel', 'persons', 'days', 'itemCount', 'weight', 'targetAudience', 'includesExotic'],
+      attributes: ['id', 'name', 'duration', 'basePrice', 'categoryId', 'sizeLabel', 'persons', 'days', 'itemCount', 'weight', 'targetAudience', 'includesExotic', 'color'],
       order: [['name', 'ASC']]
     });
 
@@ -71,7 +71,7 @@ router.get('/categories/:categoryId/packs', async (req, res) => {
 
     const packs = await Pack.findAll({
       where,
-      attributes: ['id', 'name', 'description', 'basePrice', 'finalPrice', 'validFrom', 'validUntil'],
+      attributes: ['id', 'name', 'description', 'content', 'basePrice', 'finalPrice', 'validFrom', 'validUntil'],
       include: [{
         model: PackType,
         attributes: ['id', 'name', 'duration', 'basePrice']
@@ -100,6 +100,46 @@ router.get('/categories/:categoryId/packs', async (req, res) => {
   } catch (error) {
     console.error('Error fetching packs:', error);
     res.status(500).json({ error: 'Failed to fetch packs' });
+  }
+});
+
+// GET /api/public/packs/:packId - Get pack details by ID
+router.get('/packs/:packId', async (req, res) => {
+  try {
+    const { packId } = req.params;
+    
+    const pack = await Pack.findByPk(packId, {
+      attributes: ['id', 'name', 'description', 'content', 'basePrice', 'finalPrice', 'validFrom', 'validUntil', 'categoryId', 'packTypeId'],
+      include: [
+        {
+          model: PackType,
+          attributes: ['id', 'name', 'duration', 'basePrice', 'sizeLabel', 'persons', 'days', 'itemCount', 'weight', 'targetAudience', 'includesExotic', 'color']
+        },
+        {
+          model: Product,
+          through: { attributes: ['unitPrice', 'quantity'] },
+          attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock']
+        }
+      ]
+    });
+
+    if (!pack) {
+      return res.status(404).json({ error: 'Pack not found' });
+    }
+
+    // Transform to include full image URLs for products
+    const packData = pack.toJSON();
+    if (packData.Products && Array.isArray(packData.Products)) {
+      packData.Products = packData.Products.map(product => ({
+        ...product,
+        image: getFullImageUrl(product.image)
+      }));
+    }
+
+    res.status(200).json(packData);
+  } catch (error) {
+    console.error('Error fetching pack details:', error);
+    res.status(500).json({ error: 'Failed to fetch pack details' });
   }
 });
 

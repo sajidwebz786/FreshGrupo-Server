@@ -43,6 +43,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: true
       },
+      content: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Long description for the pack'
+      },
       categoryId: {
         type: DataTypes.INTEGER,
         allowNull: false

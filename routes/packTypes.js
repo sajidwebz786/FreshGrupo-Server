@@ -88,7 +88,8 @@ router.post('/', authenticateAdmin, async (req, res) => {
       fruitCount, 
       weight, 
       targetAudience,
-      includesExotic 
+      includesExotic,
+      color
     } = req.body;
 
     const { PackType } = global.models;
@@ -104,6 +105,7 @@ router.post('/', authenticateAdmin, async (req, res) => {
       weight,
       targetAudience,
       includesExotic: includesExotic || false,
+      color,
       isActive: true
     });
 
@@ -129,7 +131,8 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
       weight, 
       targetAudience,
       includesExotic,
-      isActive 
+      isActive,
+      color
     } = req.body;
 
     const { PackType } = global.models;
@@ -150,7 +153,8 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
       weight: weight !== undefined ? weight : packType.weight,
       targetAudience: targetAudience !== undefined ? targetAudience : packType.targetAudience,
       includesExotic: includesExotic !== undefined ? includesExotic : packType.includesExotic,
-      isActive: isActive !== undefined ? isActive : packType.isActive
+      isActive: isActive !== undefined ? isActive : packType.isActive,
+      color: color !== undefined ? color : packType.color
     });
 
     res.json(packType);
