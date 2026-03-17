@@ -180,10 +180,37 @@ router.post('/razorpay/verify', async (req, res) => {
         customPackItems: item.customPackItems,
         timeSlot,
         deliveryDate,
-        status: 'processing'
+        status: 'processing',
+        paymentStatus: 'paid'
       }, { transaction });
 
       createdOrders.push(order);
+    }
+
+     // ✅ CREATE PAYMENT FOR EACH ORDER
+    for (const order of createdOrders) {
+
+      // 💰 WALLET PART (ONLY IF USED)
+      if (walletUsed > 0) {
+        await Payment.create({
+          orderId: order.id,
+          userId,
+          amount: walletUsed / createdOrders.length, // split across orders
+          paymentMethod: 'wallet',
+          status: 'success'
+        }, { transaction });
+      }
+
+      // 💳 RAZORPAY PART
+      await Payment.create({
+        orderId: order.id,
+        userId,
+        razorpayPaymentId,
+        razorpayOrderId,
+        amount: (totalAmount - walletUsed) / createdOrders.length,
+        paymentMethod: 'razorpay',
+        status: 'success'
+      }, { transaction });
     }
 
     // ✅ WALLET DEDUCTION (ONLY HERE!)
@@ -274,7 +301,8 @@ router.post('/wallet/checkout', async (req, res) => {
         customPackItems: item.customPackItems,
         timeSlot,
         deliveryDate,
-        status: 'processing'
+        status: 'processing',
+        paymentStatus: 'paid'
       }, { transaction });
 
       // ✅ HANDLE NORMAL PACK
@@ -397,6 +425,7 @@ router.post('/cod/checkout', async (req, res) => {
         timeSlot,
         deliveryDate,
         status: 'processing',
+        paymentStatus: 'pending',
         codAmount // optional field if you want
       }, { transaction });
 
