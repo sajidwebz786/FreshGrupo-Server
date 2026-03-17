@@ -131,6 +131,175 @@ router.post('/razorpay/create-order', async (req, res) => {
     res.status(500).json({ error: 'Failed to create Razorpay order' });
   }
 });
+
+
+router.post('/wallet/checkout', async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const { userId, deliveryAddress, timeSlot, deliveryDate } = req.body;
+
+    // ✅ 1. GET CART ITEMS FROM DB
+    const cartItems = await Cart.findAll({
+      where: { userId, isActive: true }
+    });
+
+    if (!cartItems.length) {
+      return res.status(400).json({ error: 'Cart is empty' });
+    }
+
+    // ✅ 2. CALCULATE TOTAL FROM DB (IMPORTANT)
+    let totalAmount = 0;
+
+    cartItems.forEach(item => {
+      totalAmount += parseFloat(item.totalPrice);
+    });
+
+    // ✅ 3. CHECK WALLET
+    const wallet = await Wallet.findOne({ where: { userId } });
+
+    if (!wallet || wallet.balance < totalAmount) {
+      return res.status(400).json({
+        error: 'Insufficient wallet balance',
+        balance: wallet?.balance || 0,
+        required: totalAmount
+      });
+    }
+
+    // ✅ 4. CREATE ORDERS (HANDLE MULTIPLE CART ITEMS)
+    const createdOrders = [];
+
+    for (const item of cartItems) {
+      const order = await Order.create({
+        userId,
+        quantity: item.quantity,
+        deliveryAddress,
+        paymentMethod: 'wallet',
+        totalAmount: item.totalPrice,
+        isCustom: item.isCustom,
+        packId: item.packId,
+        customPackName: item.customPackName,
+        customPackItems: item.customPackItems,
+        timeSlot,
+        deliveryDate,
+        status: 'processing'
+      }, { transaction });
+
+      // ✅ HANDLE NORMAL PACK
+      if (item.packId && !item.isCustom) {
+        const packProducts = await PackProduct.findAll({
+          where: { packId: item.packId },
+          include: [{ model: Product }],
+          transaction
+        });
+
+        for (const p of packProducts) {
+          await OrderPackContent.create({
+            orderId: order.id,
+            productId: p.productId,
+            productName: p.Product.name,
+            quantity: p.quantity,
+            unitPrice: p.unitPrice
+          }, { transaction });
+        }
+      }
+
+      createdOrders.push(order);
+    }
+
+    // ✅ 5. DEDUCT WALLET ONCE (VERY IMPORTANT FIX)
+    const newBalance = wallet.balance - totalAmount;
+
+    await wallet.update({
+      balance: newBalance
+    }, { transaction });
+
+    await WalletTransaction.create({
+      walletId: wallet.id,
+      userId,
+      type: 'credit_spent',
+      amount: -totalAmount,
+      balanceBefore: wallet.balance,
+      balanceAfter: newBalance,
+      description: `Order payment`,
+      status: 'completed'
+    }, { transaction });
+
+    // ✅ 6. CLEAR CART
+    await Cart.update(
+      { isActive: false },
+      { where: { userId }, transaction }
+    );
+
+    await transaction.commit();
+
+    res.json({
+      success: true,
+      orders: createdOrders,
+      totalAmount,
+      walletBalance: newBalance
+    });
+
+  } catch (err) {
+    await transaction.rollback();
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+
+router.post('/cod/checkout', async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const { userId, deliveryAddress, timeSlot, deliveryDate } = req.body;
+
+    const cartItems = await Cart.findAll({
+      where: { userId, isActive: true }
+    });
+
+    if (!cartItems.length) {
+      return res.status(400).json({ error: 'Cart empty' });
+    }
+
+    let createdOrders = [];
+
+    for (const item of cartItems) {
+      const order = await Order.create({
+        userId,
+        quantity: item.quantity,
+        deliveryAddress,
+        paymentMethod: 'cod',
+        totalAmount: item.totalPrice,
+        isCustom: item.isCustom,
+        packId: item.packId,
+        customPackName: item.customPackName,
+        customPackItems: item.customPackItems,
+        timeSlot,
+        deliveryDate,
+        status: 'processing'
+      }, { transaction });
+
+      createdOrders.push(order);
+    }
+
+    await Cart.update(
+      { isActive: false },
+      { where: { userId }, transaction }
+    );
+
+    await transaction.commit();
+
+    res.json({ success: true, orders: createdOrders });
+
+  } catch (err) {
+    await transaction.rollback();
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 /**
  * POST /api/orders
  * Create new order + payment (transaction safe)
