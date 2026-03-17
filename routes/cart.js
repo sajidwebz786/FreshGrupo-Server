@@ -126,12 +126,14 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const cartItem = await Cart.findByPk(req.params.id);
+
     if (cartItem) {
-      await cartItem.update({ isActive: false });
-      res.json({ message: "Cart item removed successfully" });
+      await cartItem.destroy(); // ✅ HARD DELETE
+      res.json({ message: "Cart item deleted permanently" });
     } else {
       res.status(404).json({ error: "Cart item not found" });
     }
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
