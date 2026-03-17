@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Category, PackType, Pack, Product } = require('../models');
+const { Category, PackType, Pack, Product, UnitType } = require('../models');
 
 // Image base URL - configure based on environment
 const IMAGE_BASE_URL = process.env.IMAGE_BASE_URL || 'https://freshgrupo-server.onrender.com/images';
@@ -150,11 +150,26 @@ router.get('/categories/:categoryId/products', async (req, res) => {
 
     const products = await Product.findAll({
       where: { categoryId, isAvailable: true },
-      attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock'],
+      attributes: [
+        'id',
+        'name',
+        'description',
+        'price',
+        'image',
+        'categoryId',
+        'unitTypeId',
+        'quantity',
+        'isAvailable',
+        'stock'
+      ],
+      include: [
+        {
+          model: UnitType // ✅ no attributes → returns all columns
+        }
+      ],
       order: [['name', 'ASC']]
     });
 
-    // Transform to include full image URLs
     const productsWithImageUrls = products.map(product => ({
       ...product.toJSON(),
       image: getFullImageUrl(product.image)
