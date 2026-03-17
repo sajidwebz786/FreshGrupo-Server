@@ -87,51 +87,143 @@ router.get('/:userId', async (req, res) => {
  */
 router.post('/razorpay/create-order', async (req, res) => {
   try {
-    const { packageId, customer } = req.body;
+    const { userId, useWallet } = req.body;
 
-    if (!packageId) {
-      return res.status(400).json({ error: 'packageId is required' });
-    }
-
-    // ✅ Get pack details
-    const pack = await Pack.findByPk(packageId);
-
-    if (!pack) {
-      return res.status(404).json({ error: 'Pack not found' });
-    }
-
-    const amount = pack.finalPrice;
-
-    // ✅ Create Razorpay order
-    const razorpayOrder = await razorpay.orders.create({
-      amount: Math.round(amount * 100), // paise
-      currency: 'INR',
-      receipt: `pack_${packageId}_${Date.now()}`,
-      payment_capture: 1,
-      notes: {
-        packageId,
-        customerName: customer?.name || '',
-        customerEmail: customer?.email || '',
-        customerPhone: customer?.phone || ''
-      }
-     
+    const cartItems = await Cart.findAll({
+      where: { userId, isActive: true }
     });
 
-    res.status(200).json({
+    if (!cartItems.length) {
+      return res.status(400).json({ error: 'Cart empty' });
+    }
+
+    // ✅ TOTAL FROM CART (FIXES CUSTOM PACK ISSUE)
+    let totalAmount = 0;
+    cartItems.forEach(i => {
+      totalAmount += parseFloat(i.totalPrice);
+    });
+
+    let walletUsed = 0;
+    let payableAmount = totalAmount;
+
+    const wallet = await Wallet.findOne({ where: { userId } });
+
+    // ✅ HANDLE WALLET + RAZORPAY
+    if (useWallet && wallet && wallet.balance > 0) {
+      walletUsed = Math.min(wallet.balance, totalAmount);
+      payableAmount = totalAmount - walletUsed;
+    }
+
+    // ✅ CREATE RAZORPAY ORDER ONLY FOR REMAINING
+    const razorpayOrder = await razorpay.orders.create({
+      amount: Math.round(payableAmount * 100),
+      currency: 'INR',
+      receipt: `cart_${userId}_${Date.now()}`
+    });
+
+    res.json({
       success: true,
       razorpayOrderId: razorpayOrder.id,
       amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
       key: process.env.RAZORPAY_KEY_ID,
-      packDetails: pack
+      totalAmount,
+      walletUsed,
+      payableAmount
     });
 
-  } catch (error) {
-    console.error('Razorpay order creation error:', error);
-    res.status(500).json({ error: 'Failed to create Razorpay order' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
+
+router.post('/razorpay/verify', async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const {
+      userId,
+      razorpayPaymentId,
+      razorpayOrderId,
+      walletUsed,
+      deliveryAddress,
+      timeSlot,
+      deliveryDate
+    } = req.body;
+
+    const cartItems = await Cart.findAll({
+      where: { userId, isActive: true }
+    });
+
+    if (!cartItems.length) {
+      return res.status(400).json({ error: 'Cart empty' });
+    }
+
+    let totalAmount = 0;
+    cartItems.forEach(i => {
+      totalAmount += parseFloat(i.totalPrice);
+    });
+
+    // ✅ CREATE ORDERS
+    const createdOrders = [];
+
+    for (const item of cartItems) {
+      const order = await Order.create({
+        userId,
+        quantity: item.quantity,
+        deliveryAddress,
+        paymentMethod: walletUsed > 0 ? 'wallet+razorpay' : 'razorpay',
+        totalAmount: item.totalPrice,
+        isCustom: item.isCustom,
+        packId: item.packId,
+        customPackName: item.customPackName,
+        customPackItems: item.customPackItems,
+        timeSlot,
+        deliveryDate,
+        status: 'processing'
+      }, { transaction });
+
+      createdOrders.push(order);
+    }
+
+    // ✅ WALLET DEDUCTION (ONLY HERE!)
+    if (walletUsed > 0) {
+      const wallet = await Wallet.findOne({ where: { userId } });
+
+      const newBalance = wallet.balance - walletUsed;
+
+      await wallet.update({ balance: newBalance }, { transaction });
+
+      await WalletTransaction.create({
+        walletId: wallet.id,
+        userId,
+        type: 'credit_spent',
+        amount: -walletUsed,
+        balanceBefore: wallet.balance,
+        balanceAfter: newBalance,
+        description: 'Wallet used with Razorpay',
+        status: 'completed'
+      }, { transaction });
+    }
+
+    // ✅ CLEAR CART
+    await Cart.update(
+      { isActive: false },
+      { where: { userId }, transaction }
+    );
+
+    await transaction.commit();
+
+    res.json({
+      success: true,
+      orders: createdOrders
+    });
+
+  } catch (err) {
+    await transaction.rollback();
+    res.status(500).json({ error: err.message });
+  }
+});
 
 router.post('/wallet/checkout', async (req, res) => {
   const transaction = await sequelize.transaction();
