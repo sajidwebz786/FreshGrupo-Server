@@ -345,8 +345,15 @@ router.post('/cod/checkout', async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
-    const { userId, deliveryAddress, timeSlot, deliveryDate } = req.body;
+    const {
+      userId,
+      deliveryAddress,
+      timeSlot,
+      deliveryDate,
+      useWallet
+    } = req.body;
 
+    // ✅ 1. GET CART
     const cartItems = await Cart.findAll({
       where: { userId, isActive: true }
     });
@@ -355,14 +362,33 @@ router.post('/cod/checkout', async (req, res) => {
       return res.status(400).json({ error: 'Cart empty' });
     }
 
-    let createdOrders = [];
+    // ✅ 2. TOTAL FROM DB
+    let totalAmount = 0;
+    cartItems.forEach(item => {
+      totalAmount += parseFloat(item.totalPrice);
+    });
+
+    // ✅ 3. WALLET CALCULATION
+    let walletUsed = 0;
+    let codAmount = totalAmount;
+
+    const wallet = await Wallet.findOne({ where: { userId } });
+
+    if (useWallet && wallet && wallet.balance > 0) {
+      walletUsed = Math.min(wallet.balance, totalAmount);
+      codAmount = totalAmount - walletUsed;
+    }
+
+    // ✅ 4. CREATE ORDERS
+    const createdOrders = [];
 
     for (const item of cartItems) {
       const order = await Order.create({
         userId,
         quantity: item.quantity,
         deliveryAddress,
-        paymentMethod: 'cod',
+        paymentMethod:
+          walletUsed > 0 ? 'wallet+cod' : 'cod',
         totalAmount: item.totalPrice,
         isCustom: item.isCustom,
         packId: item.packId,
@@ -370,12 +396,34 @@ router.post('/cod/checkout', async (req, res) => {
         customPackItems: item.customPackItems,
         timeSlot,
         deliveryDate,
-        status: 'processing'
+        status: 'processing',
+        codAmount // optional field if you want
       }, { transaction });
 
       createdOrders.push(order);
     }
 
+    // ✅ 5. DEDUCT WALLET (ONLY IF USED)
+    if (walletUsed > 0) {
+      const newBalance = wallet.balance - walletUsed;
+
+      await wallet.update({
+        balance: newBalance
+      }, { transaction });
+
+      await WalletTransaction.create({
+        walletId: wallet.id,
+        userId,
+        type: 'credit_spent',
+        amount: -walletUsed,
+        balanceBefore: wallet.balance,
+        balanceAfter: newBalance,
+        description: 'Wallet used with COD',
+        status: 'completed'
+      }, { transaction });
+    }
+
+    // ✅ 6. CLEAR CART
     await Cart.update(
       { isActive: false },
       { where: { userId }, transaction }
@@ -383,14 +431,19 @@ router.post('/cod/checkout', async (req, res) => {
 
     await transaction.commit();
 
-    res.json({ success: true, orders: createdOrders });
+    res.json({
+      success: true,
+      orders: createdOrders,
+      totalAmount,
+      walletUsed,
+      codAmount
+    });
 
   } catch (err) {
     await transaction.rollback();
     res.status(500).json({ error: err.message });
   }
 });
-
 
 /**
  * POST /api/orders
