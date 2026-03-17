@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Cart, Pack, User } = require('../models');
+const { Cart, Pack, User, PackType } = require('../models');
 const verifyToken = require('../middleware/auth');
 
 /**
@@ -17,15 +17,20 @@ router.get('/:userId', async (req, res) => {
       return res.status(200).json([]);
     }
 
-    const cartItems = await Cart.findAll({
-      where: { userId, isActive: true },
+   const cartItems = await Cart.findAll({
+  where: { userId, isActive: true },
+  include: [
+    {
+      model: Pack,
+      required: false,
       include: [
         {
-          model: Pack,
-          required: false
+          model: PackType
         }
       ]
-    });
+    }
+  ]
+});
 
     res.status(200).json(cartItems);
   } catch (error) {
@@ -57,13 +62,18 @@ router.post('/', async (req, res) => {
     let totalPriceValue;
 
     if (packId && !isCustom) {
-      const pack = await Pack.findByPk(packId);
-      if (!pack) {
-        return res.status(404).json({ error: 'Pack not found' });
-      }
-      // Use sellingPrice if available, otherwise fallback to finalPrice
-      unitPriceValue = pack.sellingPrice || pack.finalPrice;
-    }
+  const pack = await Pack.findByPk(packId);
+  if (!pack) {
+    return res.status(404).json({ error: 'Pack not found' });
+  }
+
+  // ✅ Use frontend price if provided
+  if (unitPrice) {
+    unitPriceValue = unitPrice;
+  } else {
+    unitPriceValue = pack.sellingPrice || pack.finalPrice;
+  }
+}
 
     totalPriceValue = unitPriceValue * quantity;
 
