@@ -255,6 +255,7 @@ router.post('/purchase/create-order', authenticateToken, async (req, res) => {
 //   }
 // });
 router.post('/purchase/verify', authenticateToken, async (req, res) => {
+  const transaction = await sequelize.transaction(); // start transaction
   try {
     const {
       razorpayPaymentId,
@@ -264,10 +265,9 @@ router.post('/purchase/verify', authenticateToken, async (req, res) => {
     } = req.body;
 
     const userId = req.user.id;
+    const { Wallet, WalletTransaction, Payment, User, Notification } = global.models;
 
-    const { Wallet, WalletTransaction, User, Notification } = global.models;
-
-    // 🔐 VERIFY SIGNATURE
+    // 🔐 VERIFY RAZORPAY SIGNATURE
     const generatedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(razorpayOrderId + "|" + razorpayPaymentId)
@@ -277,48 +277,70 @@ router.post('/purchase/verify', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: "Invalid payment signature" });
     }
 
-    const transaction = await WalletTransaction.findByPk(transactionId);
+    // ✅ FETCH TRANSACTION
+    const walletTransaction = await WalletTransaction.findByPk(transactionId, { transaction });
+    if (!walletTransaction) return res.status(404).json({ message: "Transaction not found" });
 
-    if (!transaction) {
-      return res.status(404).json({ message: "Transaction not found" });
-    }
-
-    let wallet = await Wallet.findOne({ where: { userId } });
-
+    // ✅ GET OR CREATE WALLET
+    let wallet = await Wallet.findOne({ where: { userId }, transaction });
     if (!wallet) {
-      wallet = await Wallet.create({
-        userId,
-        balance: 0
-      });
+      wallet = await Wallet.create({ userId, balance: 0 }, { transaction });
     }
 
-    const credits = parseFloat(transaction.amount);
+    const credits = parseFloat(walletTransaction.amount);
     const newBalance = parseFloat(wallet.balance) + credits;
 
-    await wallet.update({
-      balance: newBalance,
-      totalCreditsEarned: parseFloat(wallet.totalCreditsEarned || 0) + credits
-    });
+    // ✅ UPDATE WALLET
+    await wallet.update(
+      {
+        balance: newBalance,
+        totalCreditsEarned: parseFloat(wallet.totalCreditsEarned || 0) + credits
+      },
+      { transaction }
+    );
 
-    await transaction.update({
-      balanceAfter: newBalance,
-      status: "completed",
-      razorpayPaymentId,
-      paymentId: razorpayPaymentId
-    });
+    // ✅ UPDATE WALLET TRANSACTION
+    await walletTransaction.update(
+      {
+        balanceAfter: newBalance,
+        status: "completed",
+        razorpayPaymentId,
+        paymentId: razorpayPaymentId
+      },
+      { transaction }
+    );
 
-    const user = await User.findByPk(userId);
+    // ✅ CREATE PAYMENT RECORD
+    await Payment.create(
+      {
+        orderId: null, // No order here, just wallet credit
+        razorpayPaymentId,
+        razorpayOrderId,
+        amount: credits,
+        currency: "INR",
+        status: "success",
+        paymentMethod: "razorpay"
+      },
+      { transaction }
+    );
 
-    await Notification.create({
-      type: "credit_purchase",
-      title: "Credit Purchase",
-      message: `${user?.name || "User"} purchased ${credits} credits`,
-      userId,
-      referenceId: transaction.id,
-      referenceType: "wallet_transaction",
-      priority: "normal",
-      actionRequired: false
-    });
+    // ✅ CREATE NOTIFICATION
+    const user = await User.findByPk(userId, { transaction });
+    await Notification.create(
+      {
+        type: "credit_purchase",
+        title: "Credit Purchase",
+        message: `${user?.name || "User"} purchased ${credits} credits`,
+        userId,
+        referenceId: walletTransaction.id,
+        referenceType: "wallet_transaction",
+        priority: "normal",
+        actionRequired: false
+      },
+      { transaction }
+    );
+
+    await transaction.commit();
 
     res.json({
       success: true,
@@ -328,8 +350,9 @@ router.post('/purchase/verify', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
+    await transaction.rollback();
     console.error("Verify payment error:", error);
-    res.status(500).json({ message: "Failed to verify payment" });
+    res.status(500).json({ message: "Failed to verify payment", error: error.message });
   }
 });
 
