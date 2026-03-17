@@ -207,10 +207,10 @@ router.post('/razorpay/verify', async (req, res) => {
     }
 
     // ✅ CLEAR CART
-    await Cart.update(
-      { isActive: false },
-      { where: { userId }, transaction }
-    );
+    await Cart.destroy({
+  where: { userId },
+  transaction
+});
 
     await transaction.commit();
 
@@ -318,10 +318,10 @@ router.post('/wallet/checkout', async (req, res) => {
     }, { transaction });
 
     // ✅ 6. CLEAR CART
-    await Cart.update(
-      { isActive: false },
-      { where: { userId }, transaction }
-    );
+    await Cart.destroy({
+  where: { userId },
+  transaction
+});
 
     await transaction.commit();
 
@@ -424,10 +424,10 @@ router.post('/cod/checkout', async (req, res) => {
     }
 
     // ✅ 6. CLEAR CART
-    await Cart.update(
-      { isActive: false },
-      { where: { userId }, transaction }
-    );
+   await Cart.destroy({
+  where: { userId },
+  transaction
+});
 
     await transaction.commit();
 
