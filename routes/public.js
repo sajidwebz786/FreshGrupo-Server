@@ -107,9 +107,13 @@ router.get('/categories/:categoryId/packs', async (req, res) => {
 router.get('/packs/:packId', async (req, res) => {
   try {
     const { packId } = req.params;
-    
+
     const pack = await Pack.findByPk(packId, {
-      attributes: ['id', 'name', 'description', 'content', 'basePrice', 'finalPrice', 'sellingPrice', 'validFrom', 'validUntil', 'categoryId', 'packTypeId'],
+      attributes: [
+        'id', 'name', 'description', 'content', 
+        'basePrice', 'finalPrice', 'sellingPrice', 
+        'validFrom', 'validUntil', 'categoryId', 'packTypeId'
+      ],
       include: [
         {
           model: PackType,
@@ -117,8 +121,18 @@ router.get('/packs/:packId', async (req, res) => {
         },
         {
           model: Product,
-          through: { attributes: ['unitPrice', 'quantity'] },
-          attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock']
+          attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId'],
+          through: {
+            model: PackProduct,
+            attributes: ['unitPrice', 'quantity', 'unitTypeId'], // include unitTypeId from pack
+            include: [
+              {
+                model: UnitType,
+                as: 'UnitType', // alias from your PackProduct model
+                attributes: ['id', 'abbreviation']
+              }
+            ]
+          }
         }
       ]
     });
@@ -127,8 +141,9 @@ router.get('/packs/:packId', async (req, res) => {
       return res.status(404).json({ error: 'Pack not found' });
     }
 
-    // Transform to include full image URLs for products
     const packData = pack.toJSON();
+
+    // full image URLs
     if (packData.Products && Array.isArray(packData.Products)) {
       packData.Products = packData.Products.map(product => ({
         ...product,
