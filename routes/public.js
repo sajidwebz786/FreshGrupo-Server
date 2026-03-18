@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Category, PackType, Pack, Product, UnitType } = require('../models');
+const { Category, PackType, Pack, Product, UnitType, PackProduct } = require('../models');
 
 // Image base URL - configure based on environment
 const IMAGE_BASE_URL = process.env.IMAGE_BASE_URL || 'https://freshgrupo-server.onrender.com/images';
@@ -78,7 +78,8 @@ router.get('/categories/:categoryId/packs', async (req, res) => {
       }, {
         model: Product,
         through: { attributes: ['unitPrice', 'quantity'] }, // Include PackProduct junction table data
-        attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock']
+        attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock'],
+        include: [{ model: UnitType }] // Include UnitType for each product
       }],
       order: [['name', 'ASC']]
     });
@@ -118,7 +119,8 @@ router.get('/packs/:packId', async (req, res) => {
         {
           model: Product,
           through: { attributes: ['unitPrice', 'quantity'] },
-          attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock']
+          attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock'],
+          include: [{ model: UnitType }] // Include UnitType for each product
         }
       ]
     });
@@ -206,6 +208,35 @@ router.get('/offers', async (req, res) => {
   } catch (error) {
     console.error('Error fetching offers:', error);
     res.status(500).json({ error: 'Failed to fetch offers' });
+  }
+});
+
+// GET /api/public/packs/:packId/products - Get pack products with unit types
+router.get('/packs/:packId/products', async (req, res) => {
+  try {
+    const { packId } = req.params;
+    
+    const packProducts = await PackProduct.findAll({
+      where: { packId },
+      include: [
+        Product, 
+        { model: UnitType, as: 'UnitType' }
+      ],
+    });
+    
+    // Transform to include full image URLs for products
+    const packProductsWithImageUrls = packProducts.map(pp => {
+      const ppData = pp.toJSON();
+      if (ppData.Product && ppData.Product.image) {
+        ppData.Product.image = getFullImageUrl(ppData.Product.image);
+      }
+      return ppData;
+    });
+    
+    res.status(200).json(packProductsWithImageUrls);
+  } catch (error) {
+    console.error('Error fetching pack products:', error);
+    res.status(500).json({ error: 'Failed to fetch pack products' });
   }
 });
 
