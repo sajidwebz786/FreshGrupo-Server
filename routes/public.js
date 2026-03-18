@@ -162,22 +162,17 @@ router.get('/packs/:packId', async (req, res) => {
           ]
         },
         {
-          model: Product,
-          attributes: [
-            'id','name','description','price','image','categoryId','unitTypeId',
-            'quantity','isAvailable','stock'
-          ],
+          model: PackProduct,
+          attributes: ['id','quantity','unitPrice','unitTypeId','productId'],
           include: [
             {
-              model: PackProduct,
-              attributes: ['id','quantity','unitPrice','unitTypeId'],
-              include: [
-                {
-                  model: UnitType,
-                  as: 'UnitType',
-                  attributes: ['id','name','abbreviation']
-                }
-              ]
+              model: UnitType,
+              as: 'UnitType',
+              attributes: ['id','name','abbreviation']
+            },
+            {
+              model: Product,
+              attributes: ['id','name','description','price','image','categoryId','unitTypeId','quantity','isAvailable','stock']
             }
           ]
         }
@@ -186,20 +181,22 @@ router.get('/packs/:packId', async (req, res) => {
 
     if (!pack) return res.status(404).json({ error: 'Pack not found' });
 
+    // Transform to map products by productId for easier frontend consumption
     const packData = pack.toJSON();
 
-    // map full image urls
-    if (packData.Products && Array.isArray(packData.Products)) {
-      packData.Products = packData.Products.map(product => {
-        // get the first PackProduct for simplicity
-        const packProduct = product.PackProducts?.[0] || {};
-        return {
+    // Map PackProducts to their respective Product
+    const productsMap = {};
+    packData.PackProducts.forEach(pp => {
+      const product = pp.Product;
+      if (product) {
+        productsMap[product.id] = {
           ...product,
-          PackProduct: packProduct,
+          PackProduct: pp,
           image: getFullImageUrl(product.image)
         };
-      });
-    }
+      }
+    });
+    packData.Products = Object.values(productsMap);
 
     res.status(200).json(packData);
   } catch (err) {
@@ -207,6 +204,7 @@ router.get('/packs/:packId', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch pack details' });
   }
 });
+
 // GET /api/public/categories/:categoryId/products
 router.get('/categories/:categoryId/products', async (req, res) => {
   try {
