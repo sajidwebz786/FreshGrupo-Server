@@ -181,7 +181,7 @@ router.post('/razorpay/verify', async (req, res) => {
         timeSlot,
         deliveryDate,
         status: 'processing',
-        paymentStatus: 'paid'
+        paymentStatus: 'completed',
       }, { transaction });
 
       createdOrders.push(order);
@@ -302,7 +302,7 @@ router.post('/wallet/checkout', async (req, res) => {
         timeSlot,
         deliveryDate,
         status: 'processing',
-        paymentStatus: 'paid'
+        paymentStatus: 'completed',
       }, { transaction });
 
       // ✅ HANDLE NORMAL PACK
