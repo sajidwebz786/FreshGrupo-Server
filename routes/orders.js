@@ -49,64 +49,53 @@ router.get('/', async (req, res) => {
  * GET /api/orders/:userId
  * Fetch order history for a user
  */
-router.get('/:userId', async (req, res) => {
+router.get('/details/:orderId', async (req, res) => {
   try {
-    const userId = parseInt(req.params.userId);
+    const orderId = parseInt(req.params.orderId);
 
-    if (isNaN(userId)) {
-      return res.status(400).json({ error: 'Invalid userId' });
+    if (isNaN(orderId)) {
+      return res.status(400).json({ error: 'Invalid orderId' });
     }
 
-    const orders = await Order.findAll({
-      where: { userId },
-      order: [['createdAt', 'DESC']],
+    // Fetch order with payment and packContents
+    const order = await Order.findByPk(orderId, {
       include: [
-        {
-          model: Payment,
-          as: 'payment',
-          required: false
-        },
-        {
-          model: OrderPackContent,
-          as: 'packContents',
-          required: false
-        },
-        {
-          model: Pack,
-          include: [
-            {
-              model: PackProduct,
-              include: [{ model: Product }],
-              required: false
-            },
-            { model: PackType, required: false },
-            { model: Category, required: false }
-          ],
-          required: false
-        }
+        { model: Payment, as: 'payment', required: false },
+        { model: OrderPackContent, as: 'packContents', required: false },
+        { model: Pack, include: [{ model: PackType }, { model: Category }], required: false }
       ]
     });
 
-    // ✅ Parse customPackItems to array for each order
-    const normalizedOrders = orders.map(order => {
-      const o = order.toJSON();
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
 
-      if (o.isCustom && o.customPackItems && typeof o.customPackItems === 'string') {
-        try {
-          o.customPackItems = JSON.parse(o.customPackItems);
-        } catch (err) {
-          console.error('Failed to parse customPackItems for order', o.id, err);
-          o.customPackItems = [];
-        }
-      }
+    let packProducts = [];
 
-      return o;
-    });
+    // If it's a normal pack, fetch PackProducts separately
+    if (order.packId && !order.isCustom) {
+      packProducts = await PackProduct.findAll({
+        where: { packId: order.packId },
+        include: [{ model: Product, as: 'Product' }]
+      });
+    }
 
-    res.status(200).json(normalizedOrders);
+    // Prepare response with packProducts
+    const response = {
+      ...order.toJSON(),
+      packProducts: packProducts.map(pp => ({
+        productId: pp.productId,
+        name: pp.Product?.name || 'Unknown Product',
+        quantity: pp.quantity,
+        unit: pp.unitPrice ? `₹${pp.unitPrice}` : 'pcs'
+      }))
+    };
+
+    res.status(200).json(response);
+
   } catch (error) {
-    console.error('Error fetching orders:', error);
-    res.status(500).json({ error: 'Failed to fetch orders' });
+    console.error('Error fetching order:', error);
+    res.status(500).json({ error: 'Failed to fetch order' });
   }
 });
 
