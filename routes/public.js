@@ -104,21 +104,107 @@ router.get('/categories/:categoryId/packs', async (req, res) => {
 });
 
 // GET /api/public/packs/:packId - Get pack details by ID
+
+// router.get('/packs/:packId', async (req, res) => {
+//   try {
+//     const { packId } = req.params;
+//     const pack = await Pack.findByPk(packId, {
+//       attributes: ['id', 'name', 'description', 'content', 'basePrice', 'finalPrice', 'sellingPrice', 'validFrom', 'validUntil', 'categoryId', 'packTypeId'],
+//       include: [
+//         {
+//           model: PackType,
+//           attributes: ['id', 'name', 'duration', 'basePrice', 'sizeLabel', 'persons', 'days', 'itemCount', 'weight', 'targetAudience', 'includesExotic', 'color']
+//         },
+//         {
+//           model: Product,
+//           through: { attributes: ['unitPrice', 'quantity'] },
+//           attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock']
+//         }
+//       ]
+//     });
+
+//     if (!pack) {
+//       return res.status(404).json({ error: 'Pack not found' });
+//     }
+
+//     // Transform to include full image URLs for products
+//     const packData = pack.toJSON();
+//     if (packData.Products && Array.isArray(packData.Products)) {
+//       packData.Products = packData.Products.map(product => ({
+//         ...product,
+//         image: getFullImageUrl(product.image)
+//       }));
+//     }
+
+//     res.status(200).json(packData);
+//   } catch (error) {
+//     console.error('Error fetching pack details:', error);
+//     res.status(500).json({ error: 'Failed to fetch pack details' });
+//   }
+// });
+
 // GET /api/public/packs/:packId - Get pack details by ID
 router.get('/packs/:packId', async (req, res) => {
   try {
     const { packId } = req.params;
+
     const pack = await Pack.findByPk(packId, {
-      attributes: ['id', 'name', 'description', 'content', 'basePrice', 'finalPrice', 'sellingPrice', 'validFrom', 'validUntil', 'categoryId', 'packTypeId'],
+      attributes: [
+        'id',
+        'name',
+        'description',
+        'content',
+        'basePrice',
+        'finalPrice',
+        'sellingPrice',
+        'validFrom',
+        'validUntil',
+        'categoryId',
+        'packTypeId'
+      ],
       include: [
         {
           model: PackType,
-          attributes: ['id', 'name', 'duration', 'basePrice', 'sizeLabel', 'persons', 'days', 'itemCount', 'weight', 'targetAudience', 'includesExotic', 'color']
+          attributes: [
+            'id',
+            'name',
+            'duration',
+            'basePrice',
+            'sizeLabel',
+            'persons',
+            'days',
+            'itemCount',
+            'weight',
+            'targetAudience',
+            'includesExotic',
+            'color'
+          ]
         },
         {
           model: Product,
-          through: { attributes: ['unitPrice', 'quantity'] },
-          attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock']
+          attributes: [
+            'id',
+            'name',
+            'description',
+            'price',
+            'image',
+            'categoryId',
+            'unitTypeId',
+            'quantity',
+            'isAvailable',
+            'stock'
+          ],
+          through: {
+            model: PackProduct,
+            attributes: ['id', 'quantity', 'unitPrice', 'unitTypeId'],
+            include: [
+              {
+                model: UnitType,
+                as: 'UnitType',
+                attributes: ['id', 'name', 'abbreviation']
+              }
+            ]
+          }
         }
       ]
     });
