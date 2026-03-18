@@ -148,62 +148,52 @@ router.get('/packs/:packId', async (req, res) => {
   try {
     const { packId } = req.params;
 
+    // Fetch the pack itself
     const pack = await Pack.findByPk(packId, {
-      attributes: [
-        'id','name','description','content','basePrice','finalPrice','sellingPrice',
-        'validFrom','validUntil','categoryId','packTypeId'
-      ],
+      attributes: ['id','name','description','content','basePrice','finalPrice','sellingPrice','validFrom','validUntil','categoryId','packTypeId'],
       include: [
         {
           model: PackType,
-          attributes: [
-            'id','name','duration','basePrice','sizeLabel','persons','days',
-            'itemCount','weight','targetAudience','includesExotic','color'
-          ]
-        },
-        {
-          model: Product,
-          attributes: [
-            'id','name','description','price','image','categoryId','unitTypeId',
-            'quantity','isAvailable','stock'
-          ],
-          through: {
-            model: PackProduct,
-            attributes: ['id','quantity','unitPrice','unitTypeId'],
-          },
-          include: [
-            {
-              model: PackProduct,
-              attributes: ['id','quantity','unitPrice','unitTypeId'],
-              include: [
-                {
-                  model: UnitType,
-                  as: 'UnitType',
-                  attributes: ['id','name','abbreviation']
-                }
-              ]
-            }
-          ]
+          attributes: ['id','name','duration','basePrice','sizeLabel','persons','days','itemCount','weight','targetAudience','includesExotic','color']
         }
       ]
     });
 
     if (!pack) return res.status(404).json({ error: 'Pack not found' });
 
-    // Convert to JSON
-    const packData = pack.toJSON();
-
-    // Map each Product to include its PackProduct unit properly
-    packData.Products = packData.Products.map(product => {
-      const packProduct = product.PackProducts?.[0] || null; // first PackProduct
-      return {
-        ...product,
-        PackProduct: packProduct,
-        image: getFullImageUrl(product.image)
-      };
+    // Fetch PackProducts with Product and UnitType
+    const packProducts = await PackProduct.findAll({
+      where: { packId },
+      attributes: ['id','quantity','unitPrice'],
+      include: [
+        {
+          model: Product,
+          attributes: ['id','name','description','price','image','categoryId','unitTypeId','quantity','isAvailable','stock']
+        },
+        {
+          model: UnitType,
+          as: 'UnitType',
+          attributes: ['id','name','abbreviation']
+        }
+      ]
     });
 
+    // Transform data for frontend
+    const products = packProducts.map(pp => ({
+      ...pp.Product.toJSON(),
+      PackProduct: {
+        quantity: pp.quantity,
+        unitPrice: pp.unitPrice,
+        UnitType: pp.UnitType ? pp.UnitType.toJSON() : null
+      },
+      image: getFullImageUrl(pp.Product.image)
+    }));
+
+    const packData = pack.toJSON();
+    packData.Products = products;
+
     res.status(200).json(packData);
+
   } catch (err) {
     console.error('Error fetching pack:', err);
     res.status(500).json({ error: 'Failed to fetch pack details' });
