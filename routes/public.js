@@ -162,17 +162,26 @@ router.get('/packs/:packId', async (req, res) => {
           ]
         },
         {
-          model: PackProduct,
-          attributes: ['id','quantity','unitPrice','unitTypeId','productId'],
+          model: Product,
+          attributes: [
+            'id','name','description','price','image','categoryId','unitTypeId',
+            'quantity','isAvailable','stock'
+          ],
+          through: {
+            model: PackProduct,
+            attributes: ['id','quantity','unitPrice','unitTypeId'],
+          },
           include: [
             {
-              model: UnitType,
-              as: 'UnitType',
-              attributes: ['id','name','abbreviation']
-            },
-            {
-              model: Product,
-              attributes: ['id','name','description','price','image','categoryId','unitTypeId','quantity','isAvailable','stock']
+              model: PackProduct,
+              attributes: ['id','quantity','unitPrice','unitTypeId'],
+              include: [
+                {
+                  model: UnitType,
+                  as: 'UnitType',
+                  attributes: ['id','name','abbreviation']
+                }
+              ]
             }
           ]
         }
@@ -181,26 +190,22 @@ router.get('/packs/:packId', async (req, res) => {
 
     if (!pack) return res.status(404).json({ error: 'Pack not found' });
 
-    // Transform to map products by productId for easier frontend consumption
+    // Convert to JSON
     const packData = pack.toJSON();
 
-    // Map PackProducts to their respective Product
-    const productsMap = {};
-    packData.PackProducts.forEach(pp => {
-      const product = pp.Product;
-      if (product) {
-        productsMap[product.id] = {
-          ...product,
-          PackProduct: pp,
-          image: getFullImageUrl(product.image)
-        };
-      }
+    // Map each Product to include its PackProduct unit properly
+    packData.Products = packData.Products.map(product => {
+      const packProduct = product.PackProducts?.[0] || null; // first PackProduct
+      return {
+        ...product,
+        PackProduct: packProduct,
+        image: getFullImageUrl(product.image)
+      };
     });
-    packData.Products = Object.values(productsMap);
 
     res.status(200).json(packData);
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching pack:', err);
     res.status(500).json({ error: 'Failed to fetch pack details' });
   }
 });
