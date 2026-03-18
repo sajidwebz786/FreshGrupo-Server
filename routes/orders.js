@@ -70,16 +70,46 @@ router.get('/:userId', async (req, res) => {
           model: OrderPackContent,
           as: 'packContents',
           required: false
+        },
+        {
+          model: Pack,
+          include: [
+            {
+              model: PackProduct,
+              include: [{ model: Product }],
+              required: false
+            },
+            { model: PackType, required: false },
+            { model: Category, required: false }
+          ],
+          required: false
         }
       ]
     });
 
-    res.status(200).json(orders);
+    // ✅ Parse customPackItems to array for each order
+    const normalizedOrders = orders.map(order => {
+      const o = order.toJSON();
+
+      if (o.isCustom && o.customPackItems && typeof o.customPackItems === 'string') {
+        try {
+          o.customPackItems = JSON.parse(o.customPackItems);
+        } catch (err) {
+          console.error('Failed to parse customPackItems for order', o.id, err);
+          o.customPackItems = [];
+        }
+      }
+
+      return o;
+    });
+
+    res.status(200).json(normalizedOrders);
   } catch (error) {
     console.error('Error fetching orders:', error);
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
+
 
 /**
  * POST /api/orders/razorpay/create-order
