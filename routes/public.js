@@ -129,13 +129,29 @@ router.get('/packs/:packId', async (req, res) => {
       return res.status(404).json({ error: 'Pack not found' });
     }
 
+    // Fetch PackProducts separately to get the correct UnitType for each pack product
+    const packProducts = await PackProduct.findAll({
+      where: { packId },
+      include: [
+        { model: UnitType, as: 'UnitType' }
+      ]
+    });
+
     // Transform to include full image URLs for products
     const packData = pack.toJSON();
     if (packData.Products && Array.isArray(packData.Products)) {
-      packData.Products = packData.Products.map(product => ({
-        ...product,
-        image: getFullImageUrl(product.image)
-      }));
+      packData.Products = packData.Products.map(product => {
+        // Find the corresponding PackProduct for this product
+        const packProduct = packProducts.find(pp => pp.productId === product.id);
+        if (packProduct) {
+          // Add PackProduct data to the product including the correct UnitType
+          product.PackProduct = packProduct.toJSON();
+        }
+        return {
+          ...product,
+          image: getFullImageUrl(product.image)
+        };
+      });
     }
 
     res.status(200).json(packData);

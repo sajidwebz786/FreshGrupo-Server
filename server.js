@@ -578,7 +578,6 @@ const upload = multer({ storage: storage });
             { model: PackType },
             {
               model: Product,
-              through: { attributes: ['quantity', 'unitPrice'] },
               include: [UnitType],
             },
           ],
@@ -586,6 +585,28 @@ const upload = multer({ storage: storage });
 
         if (!pack) {
           return res.status(404).json({ error: 'Pack not found' });
+        }
+
+        // Fetch PackProducts separately to get the correct UnitType for each pack product
+        const packProducts = await PackProduct.findAll({
+          where: { packId },
+          include: [
+            { model: UnitType, as: 'UnitType' }
+          ]
+        });
+
+        // Map packProducts to nest them within each Product
+        if (pack.Products && pack.Products.length) {
+          pack.Products = pack.Products.map(product => {
+            // Find the corresponding PackProduct for this product
+            const packProduct = packProducts.find(pp => pp.productId === product.id);
+            if (packProduct) {
+              // Add PackProduct data to the product
+              // This includes quantity, unitPrice from PackProduct table, and the correct UnitType
+              product.PackProduct = packProduct.toJSON();
+            }
+            return product;
+          });
         }
 
         res.json(pack);
