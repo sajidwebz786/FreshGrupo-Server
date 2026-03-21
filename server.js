@@ -591,7 +591,7 @@ const upload = multer({ storage: storage });
         const packProducts = await PackProduct.findAll({
           where: { packId },
           include: [
-            { model: UnitType }
+            { model: UnitType, as: 'UnitType' }
           ]
         });
 
