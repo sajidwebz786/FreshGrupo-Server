@@ -706,6 +706,40 @@ const upload = multer({ storage: storage });
       }
     });
 
+    // Deactivate a pack
+    app.patch('/api/packs/:id/deactivate', async (req, res) => {
+      try {
+        const { Pack } = global.models;
+        const [updated] = await Pack.update(
+          { isActive: false },
+          { where: { id: req.params.id } }
+        );
+        if (updated) {
+          res.json({ message: 'Pack deactivated successfully' });
+        } else {
+          res.status(404).json({ error: 'Pack not found' });
+        }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // Toggle pack status
+    app.patch('/api/packs/:id/toggle-status', async (req, res) => {
+      try {
+        const { Pack } = global.models;
+        const pack = await Pack.findByPk(req.params.id);
+        if (!pack) {
+          return res.status(404).json({ error: 'Pack not found' });
+        }
+        const newStatus = !pack.isActive;
+        await pack.update({ isActive: newStatus });
+        res.json({ message: `Pack ${newStatus ? 'activated' : 'deactivated'} successfully`, isActive: newStatus });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
     // ==============================
     // Pack Type Routes
     // ==============================
