@@ -795,7 +795,8 @@ const upload = multer({ storage: storage });
           if (!p.productId || !p.quantity || !p.unitPrice) {
             return res.status(400).json({ error: 'Invalid product data: missing productId, quantity, or unitPrice' });
           }
-          if (p.quantity <= 0) {
+          const qty = parseFloat(p.quantity);
+          if (isNaN(qty) || qty <= 0) {
             return res.status(400).json({ error: 'Quantity must be greater than 0' });
           }
           if (parseFloat(p.unitPrice) <= 0) {
@@ -814,9 +815,10 @@ const upload = multer({ storage: storage });
         const packProducts = products.map(p => ({
           packId: parseInt(packId),
           productId: parseInt(p.productId),
-          quantity: parseInt(p.quantity),
+          quantity: parseFloat(p.quantity) || 1,
           unitPrice: parseFloat(p.unitPrice),
           unitTypeId: p.unitTypeId ? parseInt(p.unitTypeId) : null,
+          notes: p.notes || null,
         }));
 
         console.log('Mapped pack products:', packProducts);

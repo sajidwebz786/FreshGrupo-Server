@@ -36,9 +36,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false
       },
       quantity: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.DECIMAL(10, 3),
         allowNull: false,
-        defaultValue: 1
+        defaultValue: 1,
+        comment: 'Quantity can be decimal (e.g., 0.5 for 1/2 KG, 500 for 500g, 0.25 for 1/4 KG)'
       },
       unitPrice: {
         type: DataTypes.DECIMAL(10, 2),
@@ -48,6 +49,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,
         comment: 'Unit type for this pack product (e.g., kg, g, piece)'
+      },
+      notes: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Optional notes for price variation (e.g., small, medium, large PC)'
       }
     },
     {
