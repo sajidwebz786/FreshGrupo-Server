@@ -109,7 +109,8 @@ router.get('/categories/:categoryId/packs', async (req, res) => {
 router.get('/packs/:packId', async (req, res) => {
   try {
     const { packId } = req.params;
-    const pack = await Pack.findByPk(packId, {
+    const pack = await Pack.findOne({
+      where: { id: packId, isActive: true },
       attributes: ['id', 'name', 'description', 'content', 'basePrice', 'finalPrice', 'sellingPrice', 'validFrom', 'validUntil', 'categoryId', 'packTypeId'],
       include: [
         {
