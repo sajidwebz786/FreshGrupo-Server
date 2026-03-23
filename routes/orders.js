@@ -112,24 +112,31 @@ router.post('/razorpay/create-order', async (req, res) => {
       return res.status(400).json({ error: 'Cart empty' });
     }
 
+
     // ✅ TOTAL FROM CART (FIXES CUSTOM PACK ISSUE)
     let totalAmount = 0;
     cartItems.forEach(i => {
       totalAmount += parseFloat(i.totalPrice);
     });
 
+    // Add GST (18%)
+    const gstAmount = +(totalAmount * 0.18).toFixed(2);
+    const totalWithGST = +(totalAmount + gstAmount).toFixed(2);
+
     let walletUsed = 0;
-    let payableAmount = totalAmount;
+    let payableAmount = totalWithGST;
 
     const wallet = await Wallet.findOne({ where: { userId } });
 
     // ✅ HANDLE WALLET + RAZORPAY
+
     if (useWallet && wallet && wallet.balance > 0) {
-      walletUsed = Math.min(wallet.balance, totalAmount);
-      payableAmount = totalAmount - walletUsed;
+      walletUsed = Math.min(wallet.balance, totalWithGST);
+      payableAmount = totalWithGST - walletUsed;
     }
 
     // ✅ CREATE RAZORPAY ORDER ONLY FOR REMAINING
+
     const razorpayOrder = await razorpay.orders.create({
       amount: Math.round(payableAmount * 100),
       currency: 'INR',
@@ -141,7 +148,8 @@ router.post('/razorpay/create-order', async (req, res) => {
       razorpayOrderId: razorpayOrder.id,
       amount: razorpayOrder.amount,
       key: process.env.RAZORPAY_KEY_ID,
-      totalAmount,
+      totalAmount: totalWithGST,
+      gstAmount,
       walletUsed,
       payableAmount
     });
