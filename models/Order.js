@@ -36,7 +36,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false
       },
       quantity: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.DECIMAL(10, 3),
         allowNull: false
       },
       deliveryAddress: {
