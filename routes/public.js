@@ -119,9 +119,10 @@ router.get('/packs/:packId', async (req, res) => {
         },
         {
           model: Product,
+          as: 'Products',
           through: { attributes: ['unitPrice', 'quantity'] },
           attributes: ['id', 'name', 'description', 'price', 'image', 'categoryId', 'unitTypeId', 'quantity', 'isAvailable', 'stock'],
-          include: [{ model: UnitType }] // Include UnitType for each product
+          include: [{ model: UnitType, as: 'UnitType' }] // Include UnitType for each product
         }
       ]
     });

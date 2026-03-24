@@ -578,7 +578,10 @@ const upload = multer({ storage: storage });
             { model: PackType },
             {
               model: Product,
-              include: [UnitType],
+              as: 'Products',
+              include: [
+                { model: UnitType, as: 'UnitType' }
+              ],
             },
           ],
         });
