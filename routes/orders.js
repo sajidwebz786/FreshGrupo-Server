@@ -75,9 +75,12 @@ router.get('/:userId', async (req, res) => {
     for (let order of orders) {
       if (order.packId && !order.isCustom) {
         const packProducts = await PackProduct.findAll({
-          where: { packId: order.packId },
-          include: [{ model: Product, as: 'Product' }]
-        });
+  where: { packId: order.packId },
+  include: [
+    { model: Product, as: 'Product' },
+    { model: UnitType, attributes: ['id', 'name', 'abbreviation'] }
+  ]
+});
         order.dataValues.packProducts = packProducts.map(pp => {
           let qty = pp.quantity;
           // Format as integer if possible, else keep as float
