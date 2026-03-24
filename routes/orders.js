@@ -76,10 +76,7 @@ router.get('/:userId', async (req, res) => {
       if (order.packId && !order.isCustom) {
         const packProducts = await PackProduct.findAll({
           where: { packId: order.packId },
-          include: [
-            { model: Product, as: 'Product' },
-            { model: sequelize.models.UnitType, as: 'UnitType' }
-          ]
+          include: [{ model: Product, as: 'Product' }]
         });
         order.dataValues.packProducts = packProducts.map(pp => {
           let qty = pp.quantity;
@@ -88,16 +85,11 @@ router.get('/:userId', async (req, res) => {
             qty = parseFloat(qty);
             qty = Number.isInteger(qty) ? parseInt(qty) : parseFloat(qty);
           }
-          let unitTypeAbbreviation = '';
-          if (pp.UnitType && pp.UnitType.abbreviation) {
-            unitTypeAbbreviation = pp.UnitType.abbreviation;
-          }
           return {
             productId: pp.productId,
             name: pp.Product?.name || 'Unknown Product',
             quantity: qty,
-            unitPrice: pp.unitPrice,
-            unitTypeAbbreviation
+            unitPrice: pp.unitPrice
           };
         });
       }
