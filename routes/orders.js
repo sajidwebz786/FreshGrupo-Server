@@ -49,50 +49,59 @@ router.get('/', async (req, res) => {
  * GET /api/orders/:userId
  * Fetch order history for a user
  */
-/**
- * GET /api/orders/:userId
- * Fetch order history for a user
- */
 router.get('/:userId', async (req, res) => {
   try {
     const userId = parseInt(req.params.userId);
+
     if (isNaN(userId)) {
       return res.status(400).json({ error: 'Invalid userId' });
     }
 
-    // Fetch orders with payment and packContents
     const orders = await Order.findAll({
       where: { userId },
       order: [['createdAt', 'DESC']],
       include: [
         { model: Payment, as: 'payment', required: false },
         { model: OrderPackContent, as: 'packContents', required: false },
-        { model: Pack, include: [{ model: PackType }, { model: Category }], required: false }
+        {
+          model: Pack,
+          include: [{ model: PackType }, { model: Category }],
+          required: false
+        }
       ]
     });
 
-    // Fetch PackProducts separately for normal packs
+    // 🔥 FIXED PART
     for (let order of orders) {
       if (order.packId && !order.isCustom) {
         const packProducts = await PackProduct.findAll({
-  where: { packId: order.packId },
-  include: [
-    { model: Product, as: 'Product' },
-    { model: UnitType, attributes: ['id', 'name', 'abbreviation'] }
-  ]
-});
+          where: { packId: order.packId },
+          include: [
+            { model: Product, as: 'Product' },
+            {
+              model: UnitType,
+              as: 'UnitType', // ✅ MUST MATCH MODEL
+              attributes: ['id', 'name', 'abbreviation']
+            }
+          ]
+        });
+
         order.dataValues.packProducts = packProducts.map(pp => {
           let qty = pp.quantity;
-          // Format as integer if possible, else keep as float
+
           if (qty !== null && qty !== undefined) {
             qty = parseFloat(qty);
             qty = Number.isInteger(qty) ? parseInt(qty) : parseFloat(qty);
           }
+
           return {
             productId: pp.productId,
             name: pp.Product?.name || 'Unknown Product',
             quantity: qty,
-            unitPrice: pp.unitPrice
+            unitPrice: pp.unitPrice,
+
+            // ✅ THIS IS THE KEY FIX
+            unit: pp.UnitType?.abbreviation || ''
           };
         });
       }
