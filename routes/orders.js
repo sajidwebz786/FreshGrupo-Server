@@ -340,16 +340,21 @@ router.post('/wallet/checkout', async (req, res) => {
       if (item.packId && !item.isCustom) {
         const packProducts = await PackProduct.findAll({
           where: { packId: item.packId },
-          include: [{ model: Product }],
+          include: [
+            { model: Product, include: [{ model: UnitType, as: 'UnitType' }] }
+          ],
           transaction
         });
 
         for (const p of packProducts) {
+          // Get unit from PackProduct first, then fallback to Product's UnitType
+          const unit = p.UnitType?.abbreviation || p.Product?.UnitType?.abbreviation || '';
           await OrderPackContent.create({
             orderId: order.id,
             productId: p.productId,
             productName: p.Product.name,
             quantity: p.quantity,
+            unit: unit,
             unitPrice: p.unitPrice
           }, { transaction });
         }
@@ -590,16 +595,21 @@ router.post('/', async (req, res) => {
     if (packId && !isCustom) {
       const packProducts = await PackProduct.findAll({
         where: { packId },
-        include: [{ model: Product }],
+        include: [
+          { model: Product, include: [{ model: UnitType, as: 'UnitType' }] }
+        ],
         transaction
       });
 
       for (const packProduct of packProducts) {
+        // Get unit from PackProduct first, then fallback to Product's UnitType
+        const unit = packProduct.UnitType?.abbreviation || packProduct.Product?.UnitType?.abbreviation || '';
         await OrderPackContent.create({
           orderId: newOrder.id,
           productId: packProduct.productId,
           productName: packProduct.Product.name,
           quantity: packProduct.quantity,
+          unit: unit,
           unitPrice: packProduct.unitPrice
         }, { transaction });
       }

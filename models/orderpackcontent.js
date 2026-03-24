@@ -24,6 +24,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DECIMAL(10, 3),
         allowNull: false
       },
+      unit: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Unit type abbreviation like KG, PC, DOZEN etc.'
+      },
       unitPrice: {
         type: DataTypes.DECIMAL(10,2),
         allowNull: false
