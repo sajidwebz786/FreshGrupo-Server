@@ -7,7 +7,8 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       Notification.belongsTo(models.User, {
         foreignKey: 'userId',
-        allowNull: true
+        allowNull: true,
+        as: 'user'
       });
 
       Notification.belongsTo(models.User, {
@@ -26,7 +27,7 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true
       },
       type: {
-        type: DataTypes.ENUM('credit_purchase', 'order', 'payment', 'wallet', 'system', 'delete_request'),
+        type: DataTypes.ENUM('credit_purchase', 'order', 'payment', 'wallet', 'system', 'delete_request', 'product_deletion_request'),
         allowNull: false
       },
       title: {

@@ -581,9 +581,9 @@ const upload = multer({ storage: storage });
         if (!product) {
           return res.status(404).json({ error: 'Product not found' });
         }
-        const newStatus = product.isActive === false;
-        await product.update({ isActive: newStatus });
-        res.json({ message: `Product ${newStatus ? 'activated' : 'deactivated'} successfully`, isActive: newStatus });
+        const newStatus = !product.isAvailable;
+        await product.update({ isAvailable: newStatus });
+        res.json({ message: `Product ${newStatus ? 'activated' : 'deactivated'} successfully`, isAvailable: newStatus });
       } catch (e) {
         res.status(500).json({ error: e.message });
       }
