@@ -126,6 +126,7 @@ const upload = multer({ storage: storage });
     app.use('/api/pack-types', require('./routes/packTypes'));
     app.use('/api/unit-types', require('./routes/unitTypes'));
     app.use('/api/admin', require('./routes/adminMaintenance'));
+    app.use('/api/payments', require('./routes/payments'));
 
     // ==============================
     // Delete Request Routes (for Staff approval workflow)
@@ -388,6 +389,21 @@ const upload = multer({ storage: storage });
       }
     });
 
+    // Toggle category status
+    app.patch('/api/categories/:id/toggle-status', async (req, res) => {
+      try {
+        const category = await Category.findByPk(req.params.id);
+        if (!category) {
+          return res.status(404).json({ error: 'Category not found' });
+        }
+        const newStatus = !category.isActive;
+        await category.update({ isActive: newStatus });
+        res.json({ message: `Category ${newStatus ? 'activated' : 'deactivated'} successfully`, isActive: newStatus });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
     // ==============================
     // Unit Type Routes
     // ==============================
@@ -432,6 +448,21 @@ const upload = multer({ storage: storage });
         // For now, we'll just return a message that it's marked inactive
         // You could add an isActive field to UnitType model if needed
         res.json({ message: 'UnitType deleted successfully' });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // Toggle unit type status
+    app.patch('/api/unit-types/:id/toggle-status', async (req, res) => {
+      try {
+        const unitType = await UnitType.findByPk(req.params.id);
+        if (!unitType) {
+          return res.status(404).json({ error: 'UnitType not found' });
+        }
+        const newStatus = !unitType.isActive;
+        await unitType.update({ isActive: newStatus });
+        res.json({ message: `UnitType ${newStatus ? 'activated' : 'deactivated'} successfully`, isActive: newStatus });
       } catch (e) {
         res.status(500).json({ error: e.message });
       }
@@ -538,6 +569,21 @@ const upload = multer({ storage: storage });
         } else {
           res.status(404).json({ error: 'Product not found' });
         }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // Toggle product status
+    app.patch('/api/products/:id/toggle-status', async (req, res) => {
+      try {
+        const product = await Product.findByPk(req.params.id);
+        if (!product) {
+          return res.status(404).json({ error: 'Product not found' });
+        }
+        const newStatus = product.isActive === false;
+        await product.update({ isActive: newStatus });
+        res.json({ message: `Product ${newStatus ? 'activated' : 'deactivated'} successfully`, isActive: newStatus });
       } catch (e) {
         res.status(500).json({ error: e.message });
       }
@@ -799,6 +845,21 @@ const upload = multer({ storage: storage });
         } else {
           res.status(404).json({ error: 'PackType not found' });
         }
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // Toggle pack type status
+    app.patch('/api/pack-types/:id/toggle-status', async (req, res) => {
+      try {
+        const packType = await PackType.findByPk(req.params.id);
+        if (!packType) {
+          return res.status(404).json({ error: 'PackType not found' });
+        }
+        const newStatus = !packType.isActive;
+        await packType.update({ isActive: newStatus });
+        res.json({ message: `PackType ${newStatus ? 'activated' : 'deactivated'} successfully`, isActive: newStatus });
       } catch (e) {
         res.status(500).json({ error: e.message });
       }
